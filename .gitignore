@@ -1,0 +1,20 @@
+# Dart
+.dart_tool/
+.packages
+build/
+pubspec.lock
+
+# Coverage
+coverage/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Claude
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

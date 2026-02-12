@@ -1,0 +1,102 @@
+name: Update IANA Data
+
+on:
+  schedule:
+    # Every day at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Download latest source data
+        run: |
+          # Get latest IANA release tag from GitHub
+          LATEST=$(curl -sL https://api.github.com/repos/eggert/tz/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+          echo "Latest IANA release: $LATEST"
+          echo "IANA_VERSION=$LATEST" >> $GITHUB_ENV
+
+          # Download IANA timezone files
+          curl -sL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/zone1970.tab" -o /tmp/zone1970.tab
+          curl -sL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/backward" -o /tmp/backward
+
+          # Download ISO 3166-1 data (Debian iso-codes)
+          curl -sL "https://salsa.debian.org/iso-codes-team/iso-codes/-/raw/main/data/iso_3166-1.json" -o /tmp/iso_3166-1.json
+
+      - name: Generate data files
+        run: dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/backward /tmp/iso_3166-1.json --version ${{ env.IANA_VERSION }}
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet lib/src/data/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No data changes detected."
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Data changes detected!"
+            git diff --stat lib/src/data/
+          fi
+
+      - name: Run tests
+        if: steps.diff.outputs.changed == 'true'
+        run: dart test
+
+      - name: Bump patch version
+        if: steps.diff.outputs.changed == 'true'
+        id: version
+        run: |
+          CURRENT=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          sed -i "s/^version: .*/version: ${NEW_VERSION}/" pubspec.yaml
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped version: $CURRENT → $NEW_VERSION"
+
+      - name: Update CHANGELOG
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+          IANA="${{ env.IANA_VERSION }}"
+
+          # Count changes
+          TZ_COUNT=$(grep -c "'" lib/src/data/timezone_to_country_data.dart || true)
+          CC_COUNT=$(grep -c "'" lib/src/data/country_to_timezones_data.dart || true)
+
+          # Build changelog entry
+          ENTRY="## ${VERSION}\n\n- Updated IANA Time Zone Database to ${IANA} (${DATE}).\n- ${TZ_COUNT} timezones, ${CC_COUNT} countries.\n"
+
+          # Prepend to CHANGELOG.md
+          echo -e "${ENTRY}" | cat - CHANGELOG.md > CHANGELOG.tmp
+          mv CHANGELOG.tmp CHANGELOG.md
+
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update IANA data to ${{ env.IANA_VERSION }}"
+          title: "Update IANA Time Zone Database to ${{ env.IANA_VERSION }}"
+          body: |
+            Automated update from the IANA Time Zone Database.
+
+            **Version**: `${{ env.IANA_VERSION }}`
+            **Package version**: `${{ steps.version.outputs.version }}`
+
+            Changes detected in `lib/src/data/`. Tests pass.
+          branch: auto/iana-update
+          labels: automated,data-update

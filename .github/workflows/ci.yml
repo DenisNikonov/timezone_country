@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Analyze
+        run: dart analyze --fatal-infos
+
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Run tests
+        run: dart test
+
+      - name: Check coverage
+        run: |
+          dart pub global activate coverage
+          dart test --coverage=coverage
+          dart pub global run coverage:format_coverage \
+            --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
+          COVERAGE=$(awk -F: '/^LH:/{hit+=$2} /^LF:/{total+=$2} END{printf "%.0f", hit/total*100}' coverage/lcov.info)
+          echo "Coverage: ${COVERAGE}%"
+          if [ "$COVERAGE" -lt 100 ]; then
+            echo "::error::Coverage dropped below 100% (${COVERAGE}%)"
+            exit 1
+          fi
+
+      - name: Publish dry run
+        run: dart pub publish --dry-run
