@@ -40,5 +40,12 @@ jobs:
             exit 1
           fi
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+
       - name: Publish dry run
         run: dart pub publish --dry-run

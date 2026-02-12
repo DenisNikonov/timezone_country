@@ -6,7 +6,7 @@ Pure Dart. Zero dependencies. O(1) lookups with compile-time `const` maps.
 
 [![pub package](https://img.shields.io/pub/v/timezone_country.svg)](https://pub.dev/packages/timezone_country)
 [![CI](https://github.com/DenisNikonov/timezone_country/actions/workflows/ci.yml/badge.svg)](https://github.com/DenisNikonov/timezone_country/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/DenisNikonov/timezone_country)
+[![codecov](https://codecov.io/gh/DenisNikonov/timezone_country/graph/badge.svg)](https://codecov.io/gh/DenisNikonov/timezone_country)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
