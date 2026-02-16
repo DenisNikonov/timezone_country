@@ -99,8 +99,10 @@ void main(List<String> args) {
 
   // Sanity check: abort if zone1970.tab produced no data
   if (tzToCountry.isEmpty) {
-    print('ERROR: zone1970.tab produced zero timezone mappings. '
-        'The input file may be empty or malformed.');
+    print(
+      'ERROR: zone1970.tab produced zero timezone mappings. '
+      'The input file may be empty or malformed.',
+    );
     exit(1);
   }
 
