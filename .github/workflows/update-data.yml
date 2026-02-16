@@ -24,17 +24,27 @@ jobs:
 
       - name: Download latest source data
         run: |
-          # Get latest IANA release tag from GitHub
-          LATEST=$(curl -sL https://api.github.com/repos/eggert/tz/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+          # Get latest IANA tag from GitHub (eggert/tz uses tags, not releases)
+          LATEST=$(curl -sL "https://api.github.com/repos/eggert/tz/tags?per_page=1" | grep '"name"' | head -1 | cut -d'"' -f4)
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to determine latest IANA release tag"
+            exit 1
+          fi
           echo "Latest IANA release: $LATEST"
           echo "IANA_VERSION=$LATEST" >> $GITHUB_ENV
 
           # Download IANA timezone files
-          curl -sL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/zone1970.tab" -o /tmp/zone1970.tab
-          curl -sL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/backward" -o /tmp/backward
+          curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/zone1970.tab" -o /tmp/zone1970.tab
+          curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/backward" -o /tmp/backward
 
           # Download ISO 3166-1 data (Debian iso-codes)
-          curl -sL "https://salsa.debian.org/iso-codes-team/iso-codes/-/raw/main/data/iso_3166-1.json" -o /tmp/iso_3166-1.json
+          curl -sfL "https://salsa.debian.org/iso-codes-team/iso-codes/-/raw/main/data/iso_3166-1.json" -o /tmp/iso_3166-1.json
+
+          # Validate downloads are non-empty
+          if [ ! -s /tmp/zone1970.tab ] || [ ! -s /tmp/backward ] || [ ! -s /tmp/iso_3166-1.json ]; then
+            echo "::error::One or more downloaded source files are empty"
+            exit 1
+          fi
 
       - name: Generate data files
         run: dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/backward /tmp/iso_3166-1.json --version ${{ env.IANA_VERSION }}
