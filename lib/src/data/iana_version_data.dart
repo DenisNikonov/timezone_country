@@ -4,4 +4,4 @@
 // Generator: tool/generate_data.dart
 
 /// IANA Time Zone Database version used to generate data files.
-const String? ianaVersion = '2025c';
+const String ianaVersion = '2025c';

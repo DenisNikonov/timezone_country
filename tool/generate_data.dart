@@ -260,8 +260,12 @@ String _genStringListMap(
 }
 
 String _genVersionFile(String header, String? ianaVersion) {
-  final value = ianaVersion != null ? "'$ianaVersion'" : 'null';
+  if (ianaVersion != null) {
+    return '$header\n'
+        '/// IANA Time Zone Database version used to generate data files.\n'
+        "const String ianaVersion = '$ianaVersion';\n";
+  }
   return '$header\n'
       '/// IANA Time Zone Database version used to generate data files.\n'
-      'const String? ianaVersion = $value;\n';
+      'const String? ianaVersion = null;\n';
 }
