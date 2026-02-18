@@ -1,5 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generated from IANA Time Zone Database and ISO 3166-1
+// IANA version: 2025c
 // Generator: tool/generate_data.dart
 
 /// Mapping from ISO 3166-1 alpha-3 to alpha-2 country codes.

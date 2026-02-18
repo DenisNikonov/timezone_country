@@ -1,3 +1,8 @@
+## 1.0.1
+
+- Updated IANA Time Zone Database to 2025c (2026-02-18).
+- 312 timezones, 247 countries.
+
 ## 1.0.0
 
 - Bidirectional mapping between IANA timezone IDs and ISO 3166-1 country codes.
