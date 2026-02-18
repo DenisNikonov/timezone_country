@@ -47,7 +47,9 @@ jobs:
           fi
 
       - name: Generate data files
-        run: dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/backward /tmp/iso_3166-1.json --version ${{ env.IANA_VERSION }}
+        run: |
+          dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/backward /tmp/iso_3166-1.json --version ${{ env.IANA_VERSION }}
+          dart format lib/src/data/
 
       - name: Check for changes
         id: diff
