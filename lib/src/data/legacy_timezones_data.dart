@@ -1,6 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generated from IANA Time Zone Database and ISO 3166-1
-// IANA version: 2025c
+// IANA version: 2026a
 // Generator: tool/generate_data.dart
 
 /// Mapping from deprecated/legacy timezone names to canonical IANA identifiers.
