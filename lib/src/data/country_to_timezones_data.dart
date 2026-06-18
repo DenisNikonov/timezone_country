@@ -1,6 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generated from IANA Time Zone Database and ISO 3166-1
-// IANA version: 2025c
+// IANA version: 2026b
 // Generator: tool/generate_data.dart
 
 /// Mapping from ISO 3166-1 alpha-2 country code to IANA timezone identifiers.
@@ -113,11 +113,11 @@ const Map<String, List<String>> countryToTimezones = {
     'America/Edmonton',
     'America/Cambridge_Bay',
     'America/Inuvik',
+    'America/Vancouver',
     'America/Dawson_Creek',
     'America/Fort_Nelson',
     'America/Whitehorse',
     'America/Dawson',
-    'America/Vancouver',
     'America/Panama',
     'America/Puerto_Rico',
     'America/Phoenix',
