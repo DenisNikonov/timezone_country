@@ -1,3 +1,8 @@
+## 1.0.2
+
+- Updated IANA Time Zone Database to 2026c (2026-09-05).
+- 312 timezones, 405 countries.
+
 ## 1.0.1
 
 - Updated IANA Time Zone Database to 2026b (2026-06-18).
