@@ -23,7 +23,7 @@ platforms:
   windows:
 
 environment:
-  sdk: ^3.7.0
+  sdk: ^3.8.0
 
 dev_dependencies:
   lints: ^6.0.0
