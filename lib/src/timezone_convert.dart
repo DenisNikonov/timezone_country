@@ -13,12 +13,39 @@ import 'data/timezone_to_country_data.dart' as data;
 ///
 /// All lookups are O(1) using compile-time const [Map]s.
 abstract final class TimezoneConvert {
+  /// Regional Indicator Symbol range, used to build and read flag emoji.
+  static const int _riA = 0x1F1E6;
+  static const int _riOffset = _riA - 0x41; // 'A' = 0x41
+
+  /// The alpha-2 form of [countryCode], which may be alpha-2 or alpha-3
+  /// in either letter case. Returns `null` for anything else.
+  static String? _alpha2(String countryCode) {
+    final normalized = countryCode.toUpperCase();
+    if (normalized.length == CountryCodeFormat.alpha2.length) {
+      return data.alpha2ToAlpha3.containsKey(normalized) ? normalized : null;
+    }
+    if (normalized.length == CountryCodeFormat.alpha3.length) {
+      return data.alpha3ToAlpha2[normalized];
+    }
+    return null;
+  }
+
+  /// The canonical form of [timezone] that carries a country association,
+  /// falling back to legacy alias resolution for deprecated identifiers.
+  static String _canonical(String timezone) =>
+      data.timezoneToCountry.containsKey(timezone)
+      ? timezone
+      : resolveTimezone(timezone);
+
   // Timezone → Country
 
   /// Returns the primary country code for [timezone].
   ///
-  /// The primary country is the most populous country using this timezone,
-  /// as defined by the IANA timezone database.
+  /// The primary country is the one IANA lists first: the country of the
+  /// zone's most populous city.
+  ///
+  /// Deprecated identifiers are resolved through [resolveTimezone] first,
+  /// so `'US/Eastern'` and `'Asia/Calcutta'` also return a country.
   ///
   /// Returns `null` if [timezone] is not a known IANA timezone identifier.
   ///
@@ -31,7 +58,7 @@ abstract final class TimezoneConvert {
     String timezone, {
     CountryCodeFormat format = CountryCodeFormat.alpha2,
   }) {
-    final alpha2 = data.timezoneToCountry[timezone];
+    final alpha2 = data.timezoneToCountry[_canonical(timezone)];
     if (alpha2 == null) return null;
     return switch (format) {
       CountryCodeFormat.alpha2 => alpha2,
@@ -44,19 +71,20 @@ abstract final class TimezoneConvert {
   /// Most timezones serve a single country, but some serve multiple
   /// (e.g., `Europe/Brussels` serves `['BE', 'LU', 'NL']`).
   ///
+  /// Deprecated identifiers are resolved through [resolveTimezone] first.
+  ///
   /// Returns `null` if [timezone] is not found.
   static List<String>? timezoneToCountryCodes(
     String timezone, {
     CountryCodeFormat format = CountryCodeFormat.alpha2,
   }) {
-    final codes = data.timezoneToCountries[timezone];
+    final codes = data.timezoneToCountries[_canonical(timezone)];
     if (codes == null) return null;
     return switch (format) {
       CountryCodeFormat.alpha2 => codes,
-      CountryCodeFormat.alpha3 => [
-        for (final code in codes)
-          if (data.alpha2ToAlpha3[code] case final alpha3?) alpha3,
-      ],
+      CountryCodeFormat.alpha3 => List.unmodifiable([
+        for (final code in codes) ?data.alpha2ToAlpha3[code],
+      ]),
     };
   }
 
@@ -74,12 +102,7 @@ abstract final class TimezoneConvert {
   /// TimezoneConvert.countryToTimezones('USA'); // ['America/New_York', ...]
   /// ```
   static List<String>? countryToTimezones(String countryCode) {
-    final normalized = countryCode.toUpperCase();
-    final alpha2 = switch (normalized.length) {
-      2 => normalized,
-      3 => data.alpha3ToAlpha2[normalized],
-      _ => null,
-    };
+    final alpha2 = _alpha2(countryCode);
     if (alpha2 == null) return null;
     return data.countryToTimezones[alpha2];
   }
@@ -126,12 +149,7 @@ abstract final class TimezoneConvert {
   /// TimezoneConvert.countryName('USA'); // 'United States'
   /// ```
   static String? countryName(String countryCode) {
-    final normalized = countryCode.toUpperCase();
-    final alpha2 = switch (normalized.length) {
-      2 => normalized,
-      3 => data.alpha3ToAlpha2[normalized],
-      _ => null,
-    };
+    final alpha2 = _alpha2(countryCode);
     if (alpha2 == null) return null;
     return data.countryNames[alpha2];
   }
@@ -151,46 +169,40 @@ abstract final class TimezoneConvert {
   /// TimezoneConvert.countryFlag('USA'); // '\u{1f1fa}\u{1f1f8}'
   /// ```
   static String? countryFlag(String countryCode) {
-    final normalized = countryCode.toUpperCase();
-    final alpha2 = switch (normalized.length) {
-      2 => normalized,
-      3 => data.alpha3ToAlpha2[normalized],
-      _ => null,
-    };
-    if (alpha2 == null || !data.alpha2ToAlpha3.containsKey(alpha2)) return null;
-    // Each letter maps to a Regional Indicator Symbol: A=0x1F1E6, B=0x1F1E7, ...
-    const offset = 0x1F1E6 - 0x41; // 'A' = 0x41
+    final alpha2 = _alpha2(countryCode);
+    if (alpha2 == null) return null;
     return String.fromCharCodes([
-      alpha2.codeUnitAt(0) + offset,
-      alpha2.codeUnitAt(1) + offset,
+      alpha2.codeUnitAt(0) + _riOffset,
+      alpha2.codeUnitAt(1) + _riOffset,
     ]);
   }
 
   // Validation
 
   /// Returns `true` if [timezone] is a known IANA timezone identifier
-  /// with a country association.
+  /// with a country association, including deprecated aliases such as
+  /// `US/Eastern`.
   ///
   /// `Etc/*` zones (`Etc/UTC`, `Etc/GMT`) return `false` because they
-  /// have no associated country in `zone1970.tab`.
+  /// have no associated country in the IANA zone tables.
   static bool isValidTimezone(String timezone) =>
-      data.timezoneToCountry.containsKey(timezone);
+      data.timezoneToCountry.containsKey(_canonical(timezone));
 
   /// Returns `true` if [countryCode] has at least one associated timezone.
   ///
   /// Accepts both alpha-2 and alpha-3 formats (case-insensitive).
-  static bool isValidCountryCode(String countryCode) {
-    final normalized = countryCode.toUpperCase();
-    return switch (normalized.length) {
-      2 => data.countryToTimezones.containsKey(normalized),
-      3 =>
-        data.alpha3ToAlpha2[normalized] != null &&
-            data.countryToTimezones.containsKey(
-              data.alpha3ToAlpha2[normalized],
-            ),
-      _ => false,
-    };
-  }
+  ///
+  /// Narrower than [isKnownCountryCode]: ISO 3166-1 codes that have no IANA
+  /// timezone return `false` here.
+  static bool isValidCountryCode(String countryCode) =>
+      data.countryToTimezones.containsKey(_alpha2(countryCode));
+
+  /// Returns `true` if [countryCode] is a known ISO 3166-1 code, whether or
+  /// not it has an associated timezone.
+  ///
+  /// Accepts both alpha-2 and alpha-3 formats (case-insensitive).
+  static bool isKnownCountryCode(String countryCode) =>
+      _alpha2(countryCode) != null;
 
   // Enumeration
 

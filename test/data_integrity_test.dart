@@ -64,6 +64,38 @@ void main() {
       }
     });
 
+    test("countryToTimezones lists the country's own zone first", () {
+      final tzToCountry = TimezoneConvert.timezoneToCountryMap;
+
+      for (final MapEntry(:key, value: tzs)
+          in TimezoneConvert.countryToTimezonesMap.entries) {
+        final hasOwn = tzs.any((tz) => tzToCountry[tz] == key);
+        if (!hasOwn) continue;
+        expect(
+          tzToCountry[tzs.first],
+          key,
+          reason:
+              'countryToTimezones[$key].first is ${tzs.first}, '
+              'whose primary country is ${tzToCountry[tzs.first]}',
+        );
+      }
+    });
+
+    test('returned data is immutable', () {
+      expect(
+        () => TimezoneConvert.countryToTimezones('JP')!.add('X'),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => TimezoneConvert.countryToTimezonesMap['JP'] = [],
+        throwsUnsupportedError,
+      );
+      expect(
+        () => TimezoneConvert.allTimezones.add('X'),
+        throwsUnsupportedError,
+      );
+    });
+
     test('all country codes are exactly 2 uppercase ASCII letters', () {
       final regex = RegExp(r'^[A-Z]{2}$');
       for (final code in TimezoneConvert.countryToTimezonesMap.keys) {
@@ -159,8 +191,7 @@ void main() {
       final knownTzs = TimezoneConvert.timezoneToCountryMap;
 
       for (final MapEntry(:key, :value) in aliases.entries) {
-        // Etc/* zones (UTC, GMT, etc.) are not in zone1970.tab since
-        // they have no country association. Skip them.
+        // Etc/* zones are absent from the zone tables: no country association.
         if (value.startsWith('Etc/')) continue;
 
         expect(

@@ -29,8 +29,6 @@ void main() {
     });
 
     test('prefers common_name over official name', () {
-      // Bolivia's official ISO name is "Bolivia, Plurinational State of"
-      // but common_name should be "Bolivia"
       final name = TimezoneConvert.countryName('BO');
       expect(name, isNotNull);
       expect(name, isNot(contains(',')));
@@ -39,17 +37,14 @@ void main() {
 
   group('countryFlag', () {
     test('returns flag emoji for alpha-2 code', () {
-      // JP flag: Regional Indicator J + Regional Indicator P
       expect(
         TimezoneConvert.countryFlag('JP'),
         equals(String.fromCharCodes([0x1F1EF, 0x1F1F5])),
       );
-      // US flag
       expect(
         TimezoneConvert.countryFlag('US'),
         equals(String.fromCharCodes([0x1F1FA, 0x1F1F8])),
       );
-      // GB flag
       expect(
         TimezoneConvert.countryFlag('GB'),
         equals(String.fromCharCodes([0x1F1EC, 0x1F1E7])),

@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Generated from IANA Time Zone Database and ISO 3166-1
+// Generated from IANA Time Zone Database, ISO 3166-1 and CLDR
 // IANA version: 2026c
 // Generator: tool/generate_data.dart
 
@@ -44,7 +44,7 @@ const Map<String, String> countryNames = {
   'BZ': 'Belize',
   'CA': 'Canada',
   'CC': 'Cocos (Keeling) Islands',
-  'CD': 'Congo, The Democratic Republic of the',
+  'CD': 'Democratic Republic of the Congo',
   'CF': 'Central African Republic',
   'CG': 'Congo',
   'CH': 'Switzerland',
@@ -77,7 +77,7 @@ const Map<String, String> countryNames = {
   'FI': 'Finland',
   'FJ': 'Fiji',
   'FK': 'Falkland Islands (Malvinas)',
-  'FM': 'Micronesia, Federated States of',
+  'FM': 'Federated States of Micronesia',
   'FO': 'Faroe Islands',
   'FR': 'France',
   'GA': 'Gabon',
@@ -187,7 +187,7 @@ const Map<String, String> countryNames = {
   'PM': 'Saint Pierre and Miquelon',
   'PN': 'Pitcairn',
   'PR': 'Puerto Rico',
-  'PS': 'Palestine, State of',
+  'PS': 'State of Palestine',
   'PT': 'Portugal',
   'PW': 'Palau',
   'PY': 'Paraguay',
@@ -243,8 +243,8 @@ const Map<String, String> countryNames = {
   'VA': 'Holy See (Vatican City State)',
   'VC': 'Saint Vincent and the Grenadines',
   'VE': 'Venezuela',
-  'VG': 'Virgin Islands, British',
-  'VI': 'Virgin Islands, U.S.',
+  'VG': 'British Virgin Islands',
+  'VI': 'U.S. Virgin Islands',
   'VN': 'Vietnam',
   'VU': 'Vanuatu',
   'WF': 'Wallis and Futuna',

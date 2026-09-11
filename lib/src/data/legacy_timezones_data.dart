@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Generated from IANA Time Zone Database and ISO 3166-1
+// Generated from IANA Time Zone Database, ISO 3166-1 and CLDR
 // IANA version: 2026c
 // Generator: tool/generate_data.dart
 
@@ -8,7 +8,7 @@ const Map<String, String> legacyTimezones = {
   'Africa/Accra': 'Africa/Abidjan',
   'Africa/Addis_Ababa': 'Africa/Nairobi',
   'Africa/Asmara': 'Africa/Nairobi',
-  'Africa/Asmera': 'Africa/Nairobi',
+  'Africa/Asmera': 'Africa/Asmara',
   'Africa/Bamako': 'Africa/Abidjan',
   'Africa/Bangui': 'Africa/Lagos',
   'Africa/Banjul': 'Africa/Abidjan',
@@ -86,7 +86,7 @@ const Map<String, String> legacyTimezones = {
   'America/St_Vincent': 'America/Puerto_Rico',
   'America/Thunder_Bay': 'America/Toronto',
   'America/Tortola': 'America/Puerto_Rico',
-  'America/Virgin': 'America/Puerto_Rico',
+  'America/Virgin': 'America/St_Thomas',
   'America/Yellowknife': 'America/Edmonton',
   'Antarctica/DumontDUrville': 'Pacific/Port_Moresby',
   'Antarctica/McMurdo': 'Pacific/Auckland',
@@ -139,7 +139,6 @@ const Map<String, String> legacyTimezones = {
   'Brazil/East': 'America/Sao_Paulo',
   'Brazil/West': 'America/Manaus',
   'CET': 'Europe/Brussels',
-  'CST6CDT': 'America/Chicago',
   'Canada/Atlantic': 'America/Halifax',
   'Canada/Central': 'America/Winnipeg',
   'Canada/Eastern': 'America/Toronto',
@@ -153,7 +152,6 @@ const Map<String, String> legacyTimezones = {
   'Cuba': 'America/Havana',
   'EET': 'Europe/Athens',
   'EST': 'America/Panama',
-  'EST5EDT': 'America/New_York',
   'Egypt': 'Africa/Cairo',
   'Eire': 'Europe/Dublin',
   'Etc/GMT+0': 'Etc/GMT',
@@ -197,7 +195,7 @@ const Map<String, String> legacyTimezones = {
   'Greenwich': 'Etc/GMT',
   'HST': 'Pacific/Honolulu',
   'Hongkong': 'Asia/Hong_Kong',
-  'Iceland': 'Africa/Abidjan',
+  'Iceland': 'Atlantic/Reykjavik',
   'Indian/Antananarivo': 'Africa/Nairobi',
   'Indian/Christmas': 'Asia/Bangkok',
   'Indian/Cocos': 'Asia/Yangon',
@@ -214,7 +212,6 @@ const Map<String, String> legacyTimezones = {
   'Libya': 'Africa/Tripoli',
   'MET': 'Europe/Brussels',
   'MST': 'America/Phoenix',
-  'MST7MDT': 'America/Denver',
   'Mexico/BajaNorte': 'America/Tijuana',
   'Mexico/BajaSur': 'America/Mazatlan',
   'Mexico/General': 'America/Mexico_City',
@@ -222,7 +219,6 @@ const Map<String, String> legacyTimezones = {
   'NZ-CHAT': 'Pacific/Chatham',
   'Navajo': 'America/Denver',
   'PRC': 'Asia/Shanghai',
-  'PST8PDT': 'America/Los_Angeles',
   'Pacific/Chuuk': 'Pacific/Port_Moresby',
   'Pacific/Enderbury': 'Pacific/Kanton',
   'Pacific/Funafuti': 'Pacific/Tarawa',
@@ -230,10 +226,10 @@ const Map<String, String> legacyTimezones = {
   'Pacific/Majuro': 'Pacific/Tarawa',
   'Pacific/Midway': 'Pacific/Pago_Pago',
   'Pacific/Pohnpei': 'Pacific/Guadalcanal',
-  'Pacific/Ponape': 'Pacific/Guadalcanal',
+  'Pacific/Ponape': 'Pacific/Pohnpei',
   'Pacific/Saipan': 'Pacific/Guam',
   'Pacific/Samoa': 'Pacific/Pago_Pago',
-  'Pacific/Truk': 'Pacific/Port_Moresby',
+  'Pacific/Truk': 'Pacific/Chuuk',
   'Pacific/Wake': 'Pacific/Tarawa',
   'Pacific/Wallis': 'Pacific/Tarawa',
   'Pacific/Yap': 'Pacific/Port_Moresby',

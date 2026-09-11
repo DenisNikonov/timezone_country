@@ -1,5 +1,5 @@
 // GENERATED FILE - DO NOT EDIT
-// Generated from IANA Time Zone Database and ISO 3166-1
+// Generated from IANA Time Zone Database, ISO 3166-1 and CLDR
 // IANA version: 2026c
 // Generator: tool/generate_data.dart
 

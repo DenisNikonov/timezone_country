@@ -45,7 +45,6 @@ void main() {
     });
 
     test('three-letter non-alpha-3 country code for country lookup', () {
-      // 'ABC' is 3 letters but not a valid alpha-3 code
       expect(TimezoneConvert.countryToTimezones('ABC'), isNull);
     });
 
@@ -59,7 +58,6 @@ void main() {
     });
 
     test('timezone IDs are case-sensitive', () {
-      // IANA timezone IDs are case-sensitive
       expect(TimezoneConvert.timezoneToCountryCode('asia/tokyo'), isNull);
       expect(TimezoneConvert.timezoneToCountryCode('ASIA/TOKYO'), isNull);
       expect(TimezoneConvert.timezoneToCountryCode('Asia/Tokyo'), 'JP');
