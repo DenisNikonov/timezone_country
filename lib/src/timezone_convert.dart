@@ -1,10 +1,12 @@
 import 'country_code_format.dart';
 import 'data/alpha2_to_alpha3_data.dart' as data;
+import 'data/alpha2_to_numeric_data.dart' as data;
 import 'data/alpha3_to_alpha2_data.dart' as data;
 import 'data/country_names_data.dart' as data;
 import 'data/country_to_timezones_data.dart' as data;
 import 'data/iana_version_data.dart' as data;
 import 'data/legacy_timezones_data.dart' as data;
+import 'data/numeric_to_alpha2_data.dart' as data;
 import 'data/timezone_to_countries_data.dart' as data;
 import 'data/timezone_to_country_data.dart' as data;
 
@@ -15,6 +17,7 @@ import 'data/timezone_to_country_data.dart' as data;
 abstract final class TimezoneConvert {
   /// Regional Indicator Symbol range, used to build and read flag emoji.
   static const int _riA = 0x1F1E6;
+  static const int _riZ = 0x1F1FF;
   static const int _riOffset = _riA - 0x41; // 'A' = 0x41
 
   /// The alpha-2 form of [countryCode], which may be alpha-2 or alpha-3
@@ -29,6 +32,15 @@ abstract final class TimezoneConvert {
     }
     return null;
   }
+
+  /// Renders [alpha2] in the requested [format], or `null` if it is not a
+  /// known country code.
+  static String? _format(String alpha2, CountryCodeFormat format) =>
+      switch (format) {
+        CountryCodeFormat.alpha2 =>
+          data.alpha2ToAlpha3.containsKey(alpha2) ? alpha2 : null,
+        CountryCodeFormat.alpha3 => data.alpha2ToAlpha3[alpha2],
+      };
 
   /// The canonical form of [timezone] that carries a country association,
   /// falling back to legacy alias resolution for deprecated identifiers.
@@ -177,6 +189,60 @@ abstract final class TimezoneConvert {
     ]);
   }
 
+  /// Returns the ISO 3166-1 country code for a flag emoji.
+  ///
+  /// The inverse of [countryFlag]. Returns `null` if [flag] is not a pair of
+  /// Regional Indicator Symbols naming a known country.
+  ///
+  /// ```dart
+  /// TimezoneConvert.countryCodeFromFlag('🇯🇵'); // 'JP'
+  /// ```
+  static String? countryCodeFromFlag(
+    String flag, {
+    CountryCodeFormat format = CountryCodeFormat.alpha2,
+  }) {
+    final runes = flag.runes.toList();
+    if (runes.length != 2) return null;
+    for (final rune in runes) {
+      if (rune < _riA || rune > _riZ) return null;
+    }
+    final alpha2 = String.fromCharCodes([
+      for (final rune in runes) rune - _riOffset,
+    ]);
+    return _format(alpha2, format);
+  }
+
+  // Numeric Codes
+
+  /// Returns the ISO 3166-1 numeric code for [countryCode] as a
+  /// zero-padded three-digit string (e.g. `'JP'` → `'392'`).
+  ///
+  /// Accepts both alpha-2 and alpha-3 codes (case-insensitive).
+  /// Returns `null` if [countryCode] is not found.
+  static String? countryNumericCode(String countryCode) {
+    final alpha2 = _alpha2(countryCode);
+    if (alpha2 == null) return null;
+    return data.alpha2ToNumeric[alpha2];
+  }
+
+  /// Returns the country code for an ISO 3166-1 numeric code.
+  ///
+  /// [numeric] may be given with or without leading zeros (`'004'` or `'4'`).
+  /// Returns `null` if it is not a known numeric code.
+  ///
+  /// ```dart
+  /// TimezoneConvert.numericToCountryCode('392'); // 'JP'
+  /// ```
+  static String? numericToCountryCode(
+    String numeric, {
+    CountryCodeFormat format = CountryCodeFormat.alpha2,
+  }) {
+    final padded = numeric.padLeft(3, '0');
+    final alpha2 = data.numericToAlpha2[padded];
+    if (alpha2 == null) return null;
+    return _format(alpha2, format);
+  }
+
   // Validation
 
   /// Returns `true` if [timezone] is a known IANA timezone identifier
@@ -245,6 +311,12 @@ abstract final class TimezoneConvert {
 
   /// Raw alpha-2-to-country-name mapping.
   static Map<String, String> get countryNamesMap => data.countryNames;
+
+  /// Raw alpha-2-to-numeric mapping.
+  static Map<String, String> get alpha2ToNumericMap => data.alpha2ToNumeric;
+
+  /// Raw numeric-to-alpha-2 mapping.
+  static Map<String, String> get numericToAlpha2Map => data.numericToAlpha2;
 
   /// IANA Time Zone Database version used to generate the data,
   /// or `null` if unknown.

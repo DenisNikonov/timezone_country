@@ -75,4 +75,27 @@ extension TimezoneCountryStringExtension on String {
   /// 'USA'.toFlag // '\u{1f1fa}\u{1f1f8}'
   /// ```
   String? get toFlag => TimezoneConvert.countryFlag(this);
+
+  /// Alpha-2 country code for this flag emoji, or `null`.
+  ///
+  /// ```dart
+  /// '\u{1f1ef}\u{1f1f5}'.fromFlag // 'JP'
+  /// ```
+  String? get fromFlag => TimezoneConvert.countryCodeFromFlag(this);
+
+  /// ISO 3166-1 numeric code for this country code, or `null`.
+  ///
+  /// Accepts both alpha-2 and alpha-3 codes.
+  ///
+  /// ```dart
+  /// 'JP'.toNumericCode // '392'
+  /// ```
+  String? get toNumericCode => TimezoneConvert.countryNumericCode(this);
+
+  /// Alpha-2 country code for this ISO 3166-1 numeric code, or `null`.
+  ///
+  /// ```dart
+  /// '392'.fromNumericCode // 'JP'
+  /// ```
+  String? get fromNumericCode => TimezoneConvert.numericToCountryCode(this);
 }
