@@ -22,3 +22,4 @@ library;
 export 'src/country_code_format.dart';
 export 'src/extensions.dart';
 export 'src/timezone_convert.dart';
+export 'src/types.dart';
