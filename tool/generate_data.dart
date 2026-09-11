@@ -1,27 +1,25 @@
 // ignore_for_file: avoid_print
 
-// Offline tool to generate const data files from IANA timezone database
-// and ISO 3166-1 country data.
+// Offline tool to generate const data files from IANA timezone database,
+// ISO 3166-1 country data and the CLDR Windows timezone mapping.
 //
 // Usage:
-//   dart run tool/generate_data.dart <zone1970.tab> <backward> <iso_3166-1.json> [--version <v>]
-//
-// Example:
-//   dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/backward /tmp/iso_3166-1.json --version 2024b
-import 'dart:convert';
+//   dart run tool/generate_data.dart <zone1970.tab> <zone.tab> <backward> <iso_3166-1.json> <windowsZones.xml> [--version <v>]
 import 'dart:io';
 
+import 'parse_source_data.dart';
+
 String _header(String? ianaVersion) {
-  final versionLine =
-      ianaVersion != null ? '// IANA version: $ianaVersion\n' : '';
+  final versionLine = ianaVersion != null
+      ? '// IANA version: $ianaVersion\n'
+      : '';
   return '// GENERATED FILE - DO NOT EDIT\n'
-      '// Generated from IANA Time Zone Database and ISO 3166-1\n'
+      '// Generated from IANA Time Zone Database, ISO 3166-1 and CLDR\n'
       '$versionLine'
       '// Generator: tool/generate_data.dart\n';
 }
 
 void main(List<String> args) {
-  // Extract --version flag if present.
   String? ianaVersion;
   final positional = <String>[];
   for (var i = 0; i < args.length; i++) {
@@ -32,158 +30,168 @@ void main(List<String> args) {
     }
   }
 
-  if (positional.length < 3) {
+  if (positional.length < 5) {
     print(
       'Usage: dart run tool/generate_data.dart '
-      '<zone1970.tab> <backward> <iso_3166-1.json> '
-      '[--version <iana-version>]',
+      '<zone1970.tab> <zone.tab> <backward> <iso_3166-1.json> '
+      '<windowsZones.xml> [--version <iana-version>]',
     );
     exit(1);
   }
 
-  final zoneTab = File(positional[0]).readAsStringSync();
-  final backward = File(positional[1]).readAsStringSync();
-  final isoJson = File(positional[2]).readAsStringSync();
+  final data = parseSources(
+    zone1970Tab: File(positional[0]).readAsStringSync(),
+    zoneTab: File(positional[1]).readAsStringSync(),
+    backward: File(positional[2]).readAsStringSync(),
+    isoJson: File(positional[3]).readAsStringSync(),
+    windowsZonesXml: File(positional[4]).readAsStringSync(),
+  );
 
-  // Parse ISO 3166-1 JSON (Debian iso-codes format)
-  final isoData =
-      (jsonDecode(isoJson) as Map<String, dynamic>)['3166-1'] as List;
-
-  final alpha2ToAlpha3 = <String, String>{};
-  final countryNames = <String, String>{};
-
-  for (final entry in isoData) {
-    final map = entry as Map<String, dynamic>;
-    final a2 = map['alpha_2'] as String;
-    final a3 = map['alpha_3'] as String;
-    // Prefer common_name (e.g. "Bolivia") over name ("Bolivia, Plurinational State of")
-    final name = (map['common_name'] ?? map['name']) as String;
-
-    alpha2ToAlpha3[a2] = a3;
-    countryNames[a2] = name;
-  }
-
-  // Parse zone1970.tab
-  final tzToCountry = <String, String>{};
-  final tzToCountries = <String, List<String>>{};
-  final countryToTzs = <String, List<String>>{};
-
-  for (final line in zoneTab.split('\n')) {
-    if (line.isEmpty || line.startsWith('#')) continue;
-    final parts = line.split('\t');
-    if (parts.length < 3) continue;
-
-    final codes = parts[0].split(',');
-    final tz = parts[2];
-
-    tzToCountry[tz] = codes.first;
-    tzToCountries[tz] = codes;
-
-    for (final code in codes) {
-      (countryToTzs[code] ??= []).add(tz);
+  final problems = validate(data);
+  if (problems.isNotEmpty) {
+    for (final problem in problems) {
+      print('ERROR: $problem.');
     }
-  }
-
-  // Parse backward
-  final legacy = <String, String>{};
-  for (final line in backward.split('\n')) {
-    if (line.isEmpty || line.startsWith('#')) continue;
-    if (!line.startsWith('Link')) continue;
-    final parts = line.split(RegExp(r'\s+'));
-    if (parts.length < 3) continue;
-    // Format: Link <target> <alias> [#comment]
-    final target = parts[1];
-    final alias = parts[2];
-    legacy[alias] = target;
-  }
-
-  // Sanity check: abort if zone1970.tab produced no data
-  if (tzToCountry.isEmpty) {
-    print(
-      'ERROR: zone1970.tab produced zero timezone mappings. '
-      'The input file may be empty or malformed.',
-    );
+    print('The input files may be empty or malformed.');
     exit(1);
   }
 
-  // Sort all maps by key
-  final sortedTzToCountry = _sortByKey(tzToCountry);
-  final sortedTzToCountries = _sortByKey(tzToCountries);
-  final sortedCountryToTzs = _sortByKey(countryToTzs);
-  final sortedLegacy = _sortByKey(legacy);
-  final sortedAlpha2ToAlpha3 = _sortByKey(alpha2ToAlpha3);
-
-  final alpha3ToAlpha2 = <String, String>{
-    for (final e in alpha2ToAlpha3.entries) e.value: e.key,
-  };
-  final sortedAlpha3ToAlpha2 = _sortByKey(alpha3ToAlpha2);
-  final sortedCountryNames = _sortByKey(countryNames);
+  // Surfaced, not fatal: the data is usable, a human just has to decide
+  // whether the name needs an override.
+  for (final warning in data.warnings) {
+    print('::warning::$warning');
+  }
 
   const dataDir = 'lib/src/data';
-
   final header = _header(ianaVersion);
 
-  _writeFile(
-    '$dataDir/timezone_to_country_data.dart',
-    _genStringMap(
+  void writeStringMap(
+    String file,
+    String name,
+    Map<String, String> map,
+    String doc,
+  ) => _writeFile(
+    '$dataDir/$file',
+    _genMap(header, 'String', name, _sortByKey(map), doc, _quote),
+  );
+
+  void writeStringListMap(
+    String file,
+    String name,
+    Map<String, List<String>> map,
+    String doc,
+  ) => _writeFile(
+    '$dataDir/$file',
+    _genMap(
       header,
-      'timezoneToCountry',
-      sortedTzToCountry,
-      'Mapping from IANA timezone identifier to primary '
-          'ISO 3166-1 alpha-2 country code.',
+      'List<String>',
+      name,
+      _sortByKey(map),
+      doc,
+      (list) => '[${list.map(_quote).join(', ')}]',
+    ),
+  );
+
+  writeStringMap(
+    'timezone_to_country_data.dart',
+    'timezoneToCountry',
+    data.timezoneToCountry,
+    'Mapping from IANA timezone identifier to primary '
+        'ISO 3166-1 alpha-2 country code.',
+  );
+
+  writeStringListMap(
+    'timezone_to_countries_data.dart',
+    'timezoneToCountries',
+    data.timezoneToCountries,
+    'Mapping from IANA timezone identifier to all '
+        'ISO 3166-1 alpha-2 country codes.',
+  );
+
+  writeStringListMap(
+    'country_to_timezones_data.dart',
+    'countryToTimezones',
+    data.countryToTimezones,
+    'Mapping from ISO 3166-1 alpha-2 country code to '
+        'IANA timezone identifiers.',
+  );
+
+  writeStringMap(
+    'legacy_timezones_data.dart',
+    'legacyTimezones',
+    data.legacyTimezones,
+    'Mapping from deprecated/legacy timezone names to '
+        'canonical IANA identifiers.',
+  );
+
+  writeStringMap(
+    'alpha2_to_alpha3_data.dart',
+    'alpha2ToAlpha3',
+    data.alpha2ToAlpha3,
+    'Mapping from ISO 3166-1 alpha-2 to alpha-3 country codes.',
+  );
+
+  writeStringMap('alpha3_to_alpha2_data.dart', 'alpha3ToAlpha2', {
+    for (final e in data.alpha2ToAlpha3.entries) e.value: e.key,
+  }, 'Mapping from ISO 3166-1 alpha-3 to alpha-2 country codes.');
+
+  writeStringMap(
+    'country_names_data.dart',
+    'countryNames',
+    data.countryNames,
+    'Mapping from ISO 3166-1 alpha-2 country code to English country name.',
+  );
+
+  writeStringMap(
+    'alpha2_to_numeric_data.dart',
+    'alpha2ToNumeric',
+    data.alpha2ToNumeric,
+    'Mapping from ISO 3166-1 alpha-2 to numeric country codes.',
+  );
+
+  writeStringMap('numeric_to_alpha2_data.dart', 'numericToAlpha2', {
+    for (final e in data.alpha2ToNumeric.entries) e.value: e.key,
+  }, 'Mapping from ISO 3166-1 numeric to alpha-2 country codes.');
+
+  writeStringMap(
+    'timezone_comments_data.dart',
+    'timezoneComments',
+    data.timezoneComments,
+    'Mapping from IANA timezone identifier to the English description in '
+        'the zone tables.',
+  );
+
+  writeStringMap(
+    'timezone_to_windows_data.dart',
+    'timezoneToWindows',
+    data.timezoneToWindows,
+    'Mapping from IANA timezone identifier to Windows timezone identifier.',
+  );
+
+  _writeFile(
+    '$dataDir/timezone_coordinates_data.dart',
+    _genMap(
+      header,
+      '(double, double)',
+      'timezoneCoordinates',
+      _sortByKey(data.timezoneCoordinates),
+      'Mapping from IANA timezone identifier to the latitude and longitude '
+          'of its principal location, in degrees.',
+      (point) => '(${point.$1}, ${point.$2})',
     ),
   );
 
   _writeFile(
-    '$dataDir/timezone_to_countries_data.dart',
-    _genStringListMap(
+    '$dataDir/windows_to_timezone_data.dart',
+    _genMap(
       header,
-      'timezoneToCountries',
-      sortedTzToCountries,
-      'Mapping from IANA timezone identifier to all '
-          'ISO 3166-1 alpha-2 country codes.',
-    ),
-  );
-
-  _writeFile(
-    '$dataDir/country_to_timezones_data.dart',
-    _genStringListMap(
-      header,
-      'countryToTimezones',
-      sortedCountryToTzs,
-      'Mapping from ISO 3166-1 alpha-2 country code to '
-          'IANA timezone identifiers.',
-    ),
-  );
-
-  _writeFile(
-    '$dataDir/legacy_timezones_data.dart',
-    _genStringMap(
-      header,
-      'legacyTimezones',
-      sortedLegacy,
-      'Mapping from deprecated/legacy timezone names to '
-          'canonical IANA identifiers.',
-    ),
-  );
-
-  _writeFile(
-    '$dataDir/alpha2_to_alpha3_data.dart',
-    _genStringMap(
-      header,
-      'alpha2ToAlpha3',
-      sortedAlpha2ToAlpha3,
-      'Mapping from ISO 3166-1 alpha-2 to alpha-3 country codes.',
-    ),
-  );
-
-  _writeFile(
-    '$dataDir/alpha3_to_alpha2_data.dart',
-    _genStringMap(
-      header,
-      'alpha3ToAlpha2',
-      sortedAlpha3ToAlpha2,
-      'Mapping from ISO 3166-1 alpha-3 to alpha-2 country codes.',
+      'Map<String, String>',
+      'windowsToTimezone',
+      _sortByKey(data.windowsToTimezone),
+      'Mapping from Windows timezone identifier to territory to IANA '
+          "timezone identifier. Territory '001' is the worldwide default.",
+      (byTerritory) =>
+          '{${_sortByKey(byTerritory).entries.map((e) => '${_quote(e.key)}: ${_quote(e.value)}').join(', ')}}',
     ),
   );
 
@@ -192,21 +200,16 @@ void main(List<String> args) {
     _genVersionFile(header, ianaVersion),
   );
 
-  _writeFile(
-    '$dataDir/country_names_data.dart',
-    _genStringMap(
-      header,
-      'countryNames',
-      sortedCountryNames,
-      'Mapping from ISO 3166-1 alpha-2 country code to English country name.',
-    ),
+  print(
+    'Generated ${data.timezoneToCountry.length} timezone->country mappings',
   );
-
-  print('Generated ${sortedTzToCountry.length} timezone->country mappings');
-  print('Generated ${sortedCountryToTzs.length} country->timezone mappings');
-  print('Generated ${sortedLegacy.length} legacy alias mappings');
-  print('Generated ${sortedAlpha2ToAlpha3.length} alpha-2<->alpha-3 mappings');
-  print('Generated ${sortedCountryNames.length} country name mappings');
+  print(
+    'Generated ${data.countryToTimezones.length} country->timezone mappings',
+  );
+  print('Generated ${data.legacyTimezones.length} legacy alias mappings');
+  print('Generated ${data.alpha2ToAlpha3.length} alpha-2<->alpha-3 mappings');
+  print('Generated ${data.timezoneCoordinates.length} timezone coordinates');
+  print('Generated ${data.windowsToTimezone.length} Windows timezone mappings');
   if (ianaVersion != null) print('IANA version: $ianaVersion');
 }
 
@@ -221,51 +224,33 @@ void _writeFile(String path, String content) {
   print('Wrote $path');
 }
 
-String _genStringMap(
-  String header,
-  String name,
-  Map<String, String> map,
-  String doc,
-) {
-  final buffer =
-      StringBuffer()
-        ..writeln(header)
-        ..writeln('/// $doc')
-        ..writeln('const Map<String, String> $name = {');
-  for (final MapEntry(:key, :value) in map.entries) {
-    final escaped = value.replaceAll("'", r"\'");
-    buffer.writeln("  '$key': '$escaped',");
-  }
-  buffer.writeln('};');
-  return buffer.toString();
-}
+/// A Dart single-quoted string literal holding [value].
+String _quote(String value) =>
+    "'${value.replaceAll(r'\', r'\\').replaceAll("'", r"\'").replaceAll(r'$', r'\$')}'";
 
-String _genStringListMap(
+String _genMap<V>(
   String header,
+  String valueType,
   String name,
-  Map<String, List<String>> map,
+  Map<String, V> map,
   String doc,
+  String Function(V) renderValue,
 ) {
-  final buffer =
-      StringBuffer()
-        ..writeln(header)
-        ..writeln('/// $doc')
-        ..writeln('const Map<String, List<String>> $name = {');
+  final buffer = StringBuffer()
+    ..writeln(header)
+    ..writeln('/// $doc')
+    ..writeln('const Map<String, $valueType> $name = {');
   for (final MapEntry(:key, :value) in map.entries) {
-    final values = value.map((v) => "'$v'").join(', ');
-    buffer.writeln("  '$key': [$values],");
+    buffer.writeln('  ${_quote(key)}: ${renderValue(value)},');
   }
   buffer.writeln('};');
   return buffer.toString();
 }
 
 String _genVersionFile(String header, String? ianaVersion) {
-  if (ianaVersion != null) {
-    return '$header\n'
-        '/// IANA Time Zone Database version used to generate data files.\n'
-        "const String ianaVersion = '$ianaVersion';\n";
-  }
+  final value = ianaVersion == null ? 'null' : _quote(ianaVersion);
+  final type = ianaVersion == null ? 'String?' : 'String';
   return '$header\n'
       '/// IANA Time Zone Database version used to generate data files.\n'
-      'const String? ianaVersion = null;\n';
+      'const $type ianaVersion = $value;\n';
 }
