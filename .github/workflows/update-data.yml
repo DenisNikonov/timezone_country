@@ -14,7 +14,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dart-lang/setup-dart@v1
         with:
@@ -99,7 +99,7 @@ jobs:
       - name: Create Pull Request
         if: steps.diff.outputs.changed == 'true'
         id: pr
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
           commit-message: "chore: update IANA data to ${{ env.IANA_VERSION }}"
