@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'country_code_format.dart';
 import 'data/alpha2_to_alpha3_data.dart' as data;
 import 'data/alpha2_to_numeric_data.dart' as data;
@@ -7,6 +9,8 @@ import 'data/country_to_timezones_data.dart' as data;
 import 'data/iana_version_data.dart' as data;
 import 'data/legacy_timezones_data.dart' as data;
 import 'data/numeric_to_alpha2_data.dart' as data;
+import 'data/timezone_comments_data.dart' as data;
+import 'data/timezone_coordinates_data.dart' as data;
 import 'data/timezone_to_countries_data.dart' as data;
 import 'data/timezone_to_country_data.dart' as data;
 import 'data/timezone_to_windows_data.dart' as data;
@@ -15,7 +19,8 @@ import 'data/windows_to_timezone_data.dart' as data;
 /// Bidirectional mapping between IANA timezone identifiers and
 /// ISO 3166-1 country codes.
 ///
-/// All lookups are O(1) using compile-time const [Map]s.
+/// Identifier lookups are O(1) using compile-time const [Map]s.
+/// [nearestTimezone] is the exception and scans every zone.
 abstract final class TimezoneConvert {
   /// Regional Indicator Symbol range, used to build and read flag emoji.
   static const int _riA = 0x1F1E6;
@@ -287,9 +292,97 @@ abstract final class TimezoneConvert {
       data.timezoneToWindows[_canonical(timezone)] ??
       data.timezoneToWindows[resolveTimezone(timezone)];
 
+  // Location
+
+  /// Returns the English description IANA gives [timezone] in the zone
+  /// tables, naming the part of the country it covers.
+  ///
+  /// Most single-zone countries have no description. Returns `null` then, and
+  /// for unknown identifiers.
+  static String? timezoneComment(String timezone) =>
+      data.timezoneComments[_canonical(timezone)];
+
+  /// Returns the latitude and longitude in degrees of the principal location
+  /// of [timezone] — the city the identifier is named after, not a centroid
+  /// of the region the zone covers.
+  ///
+  /// Returns `null` if [timezone] is not a known identifier.
+  ///
+  /// ```dart
+  /// final (latitude, longitude) = TimezoneConvert.timezoneCoordinates('Asia/Tokyo')!;
+  /// ```
+  static (double latitude, double longitude)? timezoneCoordinates(
+    String timezone,
+  ) => data.timezoneCoordinates[_canonical(timezone)];
+
+  /// Returns the timezone whose principal location is closest to
+  /// ([latitude], [longitude]).
+  ///
+  /// This is a nearest-city search, not a timezone boundary lookup, and the
+  /// two disagree often enough that the result is a guess: a point well
+  /// inside one zone is regularly closer to the city naming another, even
+  /// within a single country. Use it where a wrong-but-close answer is
+  /// acceptable, and reach for a shapefile-based lookup where it is not.
+  ///
+  /// [countryCode] restricts the search to one country. Returns `null` if it
+  /// is given and has no timezone to search; scans every known timezone
+  /// otherwise, in O(n).
+  static String? nearestTimezone(
+    double latitude,
+    double longitude, {
+    String? countryCode,
+  }) {
+    final Iterable<String> candidates;
+    if (countryCode == null) {
+      candidates = data.timezoneCoordinates.keys;
+    } else {
+      final zones = countryToTimezones(countryCode);
+      if (zones == null) return null;
+      candidates = zones;
+    }
+
+    String? nearest;
+    var shortest = double.infinity;
+    for (final timezone in candidates) {
+      final point = data.timezoneCoordinates[timezone];
+      if (point == null) continue;
+      final distance = _angularDistance(
+        latitude,
+        longitude,
+        point.$1,
+        point.$2,
+      );
+      if (distance < shortest) {
+        shortest = distance;
+        nearest = timezone;
+      }
+    }
+    return nearest;
+  }
+
   /// CLDR territory code for "the whole world", the fallback mapping every
   /// Windows timezone identifier carries.
   static const String _worldwideTerritory = '001';
+
+  /// Great-circle separation of two points in radians. Only the ordering
+  /// matters here, so the Earth's radius is left out.
+  static double _angularDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const toRadians = math.pi / 180;
+    final dLat = (lat2 - lat1) * toRadians;
+    final dLon = (lon2 - lon1) * toRadians;
+    final chord =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * toRadians) *
+            math.cos(lat2 * toRadians) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    return 2 * math.asin(math.min(1, math.sqrt(chord)));
+  }
 
   // Validation
 
@@ -365,6 +458,13 @@ abstract final class TimezoneConvert {
 
   /// Raw numeric-to-alpha-2 mapping.
   static Map<String, String> get numericToAlpha2Map => data.numericToAlpha2;
+
+  /// Raw timezone-to-description mapping.
+  static Map<String, String> get timezoneCommentsMap => data.timezoneComments;
+
+  /// Raw timezone-to-coordinates mapping, in degrees.
+  static Map<String, (double latitude, double longitude)>
+  get timezoneCoordinatesMap => data.timezoneCoordinates;
 
   /// Raw Windows-identifier-to-territory-to-timezone mapping.
   static Map<String, Map<String, String>> get windowsToTimezoneMap =>
