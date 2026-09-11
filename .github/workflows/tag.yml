@@ -1,0 +1,26 @@
+name: Tag Release
+
+on:
+  push:
+    branches: [main]
+    paths: ['pubspec.yaml']
+  workflow_dispatch:
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Push tag for current pubspec version
+        env:
+          TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists, nothing to release."
+            exit 0
+          fi
+          git tag "v${VERSION}"
+          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}" "v${VERSION}"
+          echo "Pushed tag v${VERSION}"

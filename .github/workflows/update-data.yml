@@ -100,7 +100,7 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
           commit-message: "chore: update IANA data to ${{ env.IANA_VERSION }}"
           title: "Update IANA Time Zone Database to ${{ env.IANA_VERSION }}"
           body: |
