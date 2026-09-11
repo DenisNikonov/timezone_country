@@ -6,34 +6,50 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['3.8.0', stable]
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@v1.8.1
         with:
-          sdk: stable
+          sdk: ${{ matrix.sdk }}
 
       - run: dart pub get
 
       - name: Analyze
         run: dart analyze --fatal-infos
 
+      # Formatter output can shift between SDKs.
       - name: Format check
+        if: matrix.sdk == 'stable'
         run: dart format --output=none --set-exit-if-changed .
 
       - name: Run tests
+        if: matrix.sdk != 'stable'
         run: dart test
 
-      - name: Check coverage
+      - name: Run tests with coverage
+        if: matrix.sdk == 'stable'
         run: |
           dart pub global activate coverage
           dart test --coverage=coverage
           dart pub global run coverage:format_coverage \
             --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
-          COVERAGE=$(awk -F: '/^LH:/{hit+=$2} /^LF:/{total+=$2} END{printf "%.0f", hit/total*100}' coverage/lcov.info)
+
+      - name: Check coverage
+        if: matrix.sdk == 'stable'
+        run: |
+          # Truncate rather than round: "%.0f" turns 99.5% into a passing 100.
+          COVERAGE=$(awk -F: '/^LH:/{hit+=$2} /^LF:/{total+=$2} END{printf "%d", hit/total*100}' coverage/lcov.info)
           echo "Coverage: ${COVERAGE}%"
           if [ "$COVERAGE" -lt 100 ]; then
             echo "::error::Coverage dropped below 100% (${COVERAGE}%)"
@@ -41,11 +57,13 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        if: matrix.sdk == 'stable'
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
           fail_ci_if_error: false
 
       - name: Publish dry run
+        if: matrix.sdk == 'stable'
         run: dart pub publish --dry-run

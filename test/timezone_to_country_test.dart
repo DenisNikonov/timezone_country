@@ -63,11 +63,8 @@ void main() {
       expect(TimezoneConvert.timezoneToCountryCode('Antarctica/Palmer'), 'AQ');
     });
 
-    // Multi-country timezones
     test('multi-country timezone returns primary country', () {
-      // Europe/Brussels serves BE, LU, NL
       expect(TimezoneConvert.timezoneToCountryCode('Europe/Brussels'), 'BE');
-      // Asia/Dubai serves AE, OM, RE, SC, TF
       expect(TimezoneConvert.timezoneToCountryCode('Asia/Dubai'), 'AE');
     });
 
@@ -79,13 +76,11 @@ void main() {
       expect(codes, contains('NL'));
     });
 
-    // Etc timezones are NOT in zone1970.tab (no country association)
     test('Etc timezones are not mapped to countries', () {
       expect(TimezoneConvert.timezoneToCountryCode('Etc/UTC'), isNull);
       expect(TimezoneConvert.timezoneToCountryCode('Etc/GMT'), isNull);
     });
 
-    // Edge: timezone containing special characters
     test('timezones with underscores and hyphens work', () {
       expect(
         TimezoneConvert.timezoneToCountryCode('America/Argentina/Buenos_Aires'),

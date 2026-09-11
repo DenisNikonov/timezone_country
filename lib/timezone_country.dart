@@ -1,7 +1,7 @@
 /// Bidirectional mapping between IANA timezone identifiers and
 /// ISO 3166-1 country codes (alpha-2 and alpha-3).
 ///
-/// Provides O(1) lookups in both directions using compile-time const maps.
+/// Identifier lookups are O(1) in both directions, using compile-time const maps.
 /// Pure Dart with zero runtime dependencies.
 ///
 /// ```dart
@@ -22,3 +22,4 @@ library;
 export 'src/country_code_format.dart';
 export 'src/extensions.dart';
 export 'src/timezone_convert.dart';
+export 'src/types.dart';

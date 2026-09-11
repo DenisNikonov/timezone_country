@@ -2,7 +2,6 @@ name: Update IANA Data
 
 on:
   schedule:
-    # Every day at 06:00 UTC
     - cron: '0 6 * * *'
   workflow_dispatch: # Allow manual trigger
 
@@ -16,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@v1.8.1
         with:
           sdk: stable
 
@@ -25,7 +24,11 @@ jobs:
       - name: Download latest source data
         run: |
           # Get latest IANA tag from GitHub (eggert/tz uses tags, not releases)
-          LATEST=$(curl -sL "https://api.github.com/repos/eggert/tz/tags?per_page=1" | grep '"name"' | head -1 | cut -d'"' -f4)
+          # Tags API is not version-ordered. Authenticated to lift the rate limit.
+          LATEST=$(curl -sL -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/eggert/tz/tags?per_page=100" \
+            | grep '"name"' | cut -d'"' -f4 \
+            | grep -E '^[0-9]{4}[a-z]+$' | sort -r | head -1)
           if [ -z "$LATEST" ]; then
             echo "::error::Failed to determine latest IANA release tag"
             exit 1
@@ -33,22 +36,32 @@ jobs:
           echo "Latest IANA release: $LATEST"
           echo "IANA_VERSION=$LATEST" >> $GITHUB_ENV
 
-          # Download IANA timezone files
           curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/zone1970.tab" -o /tmp/zone1970.tab
+          curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/zone.tab" -o /tmp/zone.tab
           curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/backward" -o /tmp/backward
 
-          # Download ISO 3166-1 data (Debian iso-codes)
           curl -sfL "https://salsa.debian.org/iso-codes-team/iso-codes/-/raw/main/data/iso_3166-1.json" -o /tmp/iso_3166-1.json
 
-          # Validate downloads are non-empty
-          if [ ! -s /tmp/zone1970.tab ] || [ ! -s /tmp/backward ] || [ ! -s /tmp/iso_3166-1.json ]; then
-            echo "::error::One or more downloaded source files are empty"
-            exit 1
-          fi
+          # CLDR releases on its own schedule, unrelated to the IANA version.
+          curl -sfL "https://raw.githubusercontent.com/unicode-org/cldr/main/common/supplemental/windowsZones.xml" -o /tmp/windowsZones.xml
+
+          # The file carries no version of its own, so record the commit it
+          # came from.
+          CLDR=$(curl -sL -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/unicode-org/cldr/commits?path=common/supplemental/windowsZones.xml&per_page=1" \
+            | grep -m1 '"sha"' | cut -d'"' -f4 | cut -c1-7)
+          echo "CLDR_COMMIT=${CLDR:-unknown}" >> $GITHUB_ENV
+
+          for f in /tmp/zone1970.tab /tmp/zone.tab /tmp/backward /tmp/iso_3166-1.json /tmp/windowsZones.xml; do
+            if [ ! -s "$f" ]; then
+              echo "::error::Downloaded source file $f is empty"
+              exit 1
+            fi
+          done
 
       - name: Generate data files
         run: |
-          dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/backward /tmp/iso_3166-1.json --version ${{ env.IANA_VERSION }}
+          dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/zone.tab /tmp/backward /tmp/iso_3166-1.json /tmp/windowsZones.xml --version ${{ env.IANA_VERSION }}
           dart format lib/src/data/
 
       - name: Check for changes
@@ -62,6 +75,15 @@ jobs:
             echo "Data changes detected!"
             git diff --stat lib/src/data/
           fi
+
+      # This PR is auto-merged, so it needs the same gates as CI.
+      - name: Analyze
+        if: steps.diff.outputs.changed == 'true'
+        run: dart analyze --fatal-infos
+
+      - name: Format check
+        if: steps.diff.outputs.changed == 'true'
+        run: dart format --output=none --set-exit-if-changed .
 
       - name: Run tests
         if: steps.diff.outputs.changed == 'true'
@@ -85,14 +107,12 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           IANA="${{ env.IANA_VERSION }}"
 
-          # Count changes
-          TZ_COUNT=$(grep -c "'" lib/src/data/timezone_to_country_data.dart || true)
-          CC_COUNT=$(grep -c "'" lib/src/data/country_to_timezones_data.dart || true)
+          # Match keys only: `dart format` wraps long values onto more lines.
+          TZ_COUNT=$(grep -c "^  '" lib/src/data/timezone_to_country_data.dart || true)
+          CC_COUNT=$(grep -c "^  '" lib/src/data/country_to_timezones_data.dart || true)
 
-          # Build changelog entry
-          ENTRY="## ${VERSION}\n\n- Updated IANA Time Zone Database to ${IANA} (${DATE}).\n- ${TZ_COUNT} timezones, ${CC_COUNT} countries.\n"
+          ENTRY="## ${VERSION}\n\n- Updated embedded timezone and country data (${DATE}). IANA Time Zone Database ${IANA}, CLDR ${{ env.CLDR_COMMIT }}.\n- ${TZ_COUNT} timezones, ${CC_COUNT} countries.\n"
 
-          # Prepend to CHANGELOG.md
           echo -e "${ENTRY}" | cat - CHANGELOG.md > CHANGELOG.tmp
           mv CHANGELOG.tmp CHANGELOG.md
 
@@ -118,4 +138,4 @@ jobs:
         if: steps.pr.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: gh pr merge ${{ steps.pr.outputs.pull-request-number }} --merge --delete-branch
+        run: gh pr merge ${{ steps.pr.outputs.pull-request-number }} --auto --merge --delete-branch

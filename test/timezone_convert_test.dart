@@ -117,10 +117,8 @@ void main() {
       }
     });
 
-    test('ianaVersion is accessible', () {
-      // Value depends on generation — may be null or a version string.
-      final version = TimezoneConvert.ianaVersion;
-      expect(version, anyOf(isNull, isA<String>()));
+    test('ianaVersion is a released IANA version', () {
+      expect(TimezoneConvert.ianaVersion, matches(RegExp(r'^\d{4}[a-z]+$')));
     });
   });
 }

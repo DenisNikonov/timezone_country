@@ -27,7 +27,7 @@ jobs:
         run: dart test
 
   github-release:
-    needs: test
+    needs: publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -38,7 +38,8 @@ jobs:
         id: changelog
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          BODY=$(awk "/^## ${VERSION}/{flag=1; next} /^## /{flag=0} flag" CHANGELOG.md)
+          # Compare the whole heading: a regex would also match longer versions.
+          BODY=$(awk -v v="$VERSION" '$0 == "## " v {flag=1; next} /^## /{flag=0} flag' CHANGELOG.md)
           echo "body<<EOF" >> $GITHUB_OUTPUT
           echo "$BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
