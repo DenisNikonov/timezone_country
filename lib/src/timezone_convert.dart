@@ -9,6 +9,8 @@ import 'data/legacy_timezones_data.dart' as data;
 import 'data/numeric_to_alpha2_data.dart' as data;
 import 'data/timezone_to_countries_data.dart' as data;
 import 'data/timezone_to_country_data.dart' as data;
+import 'data/timezone_to_windows_data.dart' as data;
+import 'data/windows_to_timezone_data.dart' as data;
 
 /// Bidirectional mapping between IANA timezone identifiers and
 /// ISO 3166-1 country codes.
@@ -243,6 +245,52 @@ abstract final class TimezoneConvert {
     return _format(alpha2, format);
   }
 
+  // Windows Timezones
+
+  /// Returns the IANA timezone identifier for a Windows timezone identifier.
+  ///
+  /// A Windows zone spans several countries, each with its own IANA zone, so
+  /// pass [countryCode] when it is known. Without it, or when CLDR does not
+  /// cover that country, the worldwide default is returned.
+  ///
+  /// Returns `null` if [windowsId] is not a known Windows timezone
+  /// identifier, or if [countryCode] is given and is not a country code.
+  ///
+  /// ```dart
+  /// TimezoneConvert.windowsToTimezone('Romance Standard Time'); // 'Europe/Paris'
+  /// TimezoneConvert.windowsToTimezone('Romance Standard Time',
+  ///     countryCode: 'BE'); // 'Europe/Brussels'
+  /// ```
+  static String? windowsToTimezone(String windowsId, {String? countryCode}) {
+    final byTerritory = data.windowsToTimezone[windowsId];
+    if (byTerritory == null) return null;
+    if (countryCode != null) {
+      final alpha2 = _alpha2(countryCode);
+      if (alpha2 == null) return null;
+      final zone = byTerritory[alpha2];
+      if (zone != null) return zone;
+    }
+    return byTerritory[_worldwideTerritory];
+  }
+
+  /// Returns the Windows timezone identifier for [timezone].
+  ///
+  /// Deprecated identifiers are resolved first. Returns `null` if CLDR has no
+  /// Windows equivalent.
+  ///
+  /// ```dart
+  /// TimezoneConvert.timezoneToWindows('Asia/Tokyo'); // 'Tokyo Standard Time'
+  /// ```
+  static String? timezoneToWindows(String timezone) =>
+      // A country-specific zone can be absent from CLDR while its link
+      // target is listed.
+      data.timezoneToWindows[_canonical(timezone)] ??
+      data.timezoneToWindows[resolveTimezone(timezone)];
+
+  /// CLDR territory code for "the whole world", the fallback mapping every
+  /// Windows timezone identifier carries.
+  static const String _worldwideTerritory = '001';
+
   // Validation
 
   /// Returns `true` if [timezone] is a known IANA timezone identifier
@@ -317,6 +365,13 @@ abstract final class TimezoneConvert {
 
   /// Raw numeric-to-alpha-2 mapping.
   static Map<String, String> get numericToAlpha2Map => data.numericToAlpha2;
+
+  /// Raw Windows-identifier-to-territory-to-timezone mapping.
+  static Map<String, Map<String, String>> get windowsToTimezoneMap =>
+      data.windowsToTimezone;
+
+  /// Raw timezone-to-Windows-identifier mapping.
+  static Map<String, String> get timezoneToWindowsMap => data.timezoneToWindows;
 
   /// IANA Time Zone Database version used to generate the data,
   /// or `null` if unknown.
