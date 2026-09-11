@@ -1,16 +1,27 @@
 name: Tag Release
 
 on:
-  push:
+  # Tagging starts the publish pipeline, so wait for CI rather than reacting
+  # to the push: a tag on a commit that fails CI cannot be taken back.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths: ['pubspec.yaml']
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   tag:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Push tag for current pubspec version
         env:
