@@ -1,3 +1,8 @@
+## 1.1.1
+
+- Updated embedded timezone and country data (2026-09-12). IANA Time Zone Database 2026d, CLDR c33a1f0.
+- 418 timezones, 247 countries.
+
 ## 1.1.0
 
 Country accuracy release. Three separate places collapsed a country-specific
