@@ -9,6 +9,9 @@ Pure Dart. Zero dependencies. O(1) identifier lookups with compile-time `const` 
 [![codecov](https://codecov.io/gh/DenisNikonov/timezone_country/graph/badge.svg)](https://codecov.io/gh/DenisNikonov/timezone_country)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
+No platform channel, no plugin, no network call — a plain Dart library, so it
+behaves the same in a server, a CLI, a Flutter app and a release web build.
+
 ## Features
 
 - **Timezone → Country**: Get the country code for any IANA timezone
@@ -20,6 +23,7 @@ Pure Dart. Zero dependencies. O(1) identifier lookups with compile-time `const` 
 - **Country Names**: `'JP'` → `'Japan'` (from [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes))
 - **Flag Emoji**: `'JP'` → `'🇯🇵'` (pure Unicode arithmetic, zero data)
 - **Windows Timezones**: `'Tokyo Standard Time'` ↔ `'Asia/Tokyo'` (from [CLDR](https://github.com/unicode-org/cldr))
+- **Zone Display Names**: `'America/Denver'` → `'Mountain Standard Time'` (from [CLDR](https://github.com/unicode-org/cldr))
 - **Coordinates**: `'Asia/Tokyo'` → latitude and longitude, plus a nearest-city search
 - **String Extensions**: Fluent API on `String` for quick conversions
 - **Validated Types**: `CountryCode` and `TimezoneId` extension types — parse once, no null checks after
@@ -30,7 +34,7 @@ Pure Dart. Zero dependencies. O(1) identifier lookups with compile-time `const` 
 
 ```yaml
 dependencies:
-  timezone_country: ^1.1.0
+  timezone_country: ^1.2.0
 ```
 
 ```bash
@@ -69,6 +73,17 @@ TimezoneConvert.timezoneToWindows('Asia/Tokyo');            // 'Tokyo Standard T
 TimezoneConvert.windowsToTimezone('Romance Standard Time'); // 'Europe/Paris'
 TimezoneConvert.windowsToTimezone('Romance Standard Time',
     countryCode: 'BE');                                     // 'Europe/Brussels'
+
+// Zone display names
+TimezoneConvert.timezoneGenericName('America/Denver');      // 'Mountain Time'
+TimezoneConvert.timezoneStandardName('America/Denver');     // 'Mountain Standard Time'
+TimezoneConvert.timezoneDaylightName('America/Denver');     // 'Mountain Daylight Time'
+TimezoneConvert.timezoneCity('Asia/Ho_Chi_Minh');           // 'Ho Chi Minh City'
+TimezoneConvert.primaryTimezone('DE');                      // 'Europe/Berlin'
+
+// Fixed-offset zones
+TimezoneConvert.isKnownTimezone('Etc/UTC');                 // true
+TimezoneConvert.timezoneFixedOffset('Etc/GMT-1');           // Duration(hours: 1)
 
 // Location
 TimezoneConvert.timezoneCoordinates('Asia/Tokyo');          // ≈ (35.65, 139.74)
@@ -114,7 +129,7 @@ device, use [`flutter_timezone`](https://pub.dev/packages/flutter_timezone):
 
 ```yaml
 dependencies:
-  timezone_country: ^1.1.0
+  timezone_country: ^1.2.0
   flutter_timezone: ^5.1.0
 ```
 
@@ -139,6 +154,49 @@ for (final tz in available) {
 }
 ```
 
+### On the web, without a plugin
+
+Browsers expose the IANA identifier through `Intl`, so no platform channel is
+involved and nothing has to be awaited:
+
+```dart
+import 'dart:js_interop';
+
+@JS('Intl.DateTimeFormat')
+extension type _DateTimeFormat._(JSObject _) implements JSObject {
+  external factory _DateTimeFormat();
+  external _ResolvedOptions resolvedOptions();
+}
+
+extension type _ResolvedOptions._(JSObject _) implements JSObject {
+  external String get timeZone;
+}
+
+String? localCountryCode() =>
+    TimezoneConvert.timezoneToCountryCode(_DateTimeFormat().resolvedOptions().timeZone);
+```
+
+Older browsers report a deprecated identifier here — `Asia/Calcutta` rather
+than `Asia/Kolkata`, `Europe/Kiev` rather than `Europe/Kyiv`. Both forms
+resolve, so no normalisation step is needed.
+
+## Bundle size
+
+Tree shaking works per data file: an app pays only for the maps it reaches.
+Measured with `dart run tool/measure_size.dart`, as the difference against an
+identical program that does not import the package.
+
+| What the app calls | dart2js | dart2wasm | AOT |
+|---|---|---|---|
+| `timezoneToCountryCode` | 7.7 KB | 11.1 KB | 18.1 KB |
+| `countryName`, `countryFlag` | 6.3 KB | 10.9 KB | 17.6 KB |
+| `timezoneToWindows` | 10.3 KB | 15.2 KB | 21.0 KB |
+| `timezoneCoordinates` | 13.3 KB | 19.1 KB | 28.1 KB |
+| the entire public API | 55.9 KB | 55.1 KB | 93.5 KB |
+
+Gzipped, which is what a browser downloads. Re-run the tool to check these
+against the current data rather than trusting the table.
+
 ## API Reference
 
 ### TimezoneConvert
@@ -158,6 +216,17 @@ for (final tz in available) {
 | `countryCodeFromFlag(flag, {format})` | Flag emoji → country code |
 | `timezoneToWindows(tz)` | IANA → Windows timezone identifier |
 | `windowsToTimezone(id, {countryCode})` | Windows timezone identifier → IANA |
+| `timezoneCity(tz)` | The zone's exemplar city in English |
+| `timezoneGenericName(tz)` | Location-independent name, e.g. `'Mountain Time'` |
+| `timezoneStandardName(tz)` | Standard-time name, e.g. `'Mountain Standard Time'` |
+| `timezoneDaylightName(tz)` | Daylight-time name, `null` where the zone has none |
+| `metazone(tz)` | CLDR metazone the zone currently belongs to |
+| `primaryTimezone(code)` | The country's principal zone, `null` when unranked |
+| `isKnownTimezone(tz)` | Known identifier, `Etc/*` and aliases included |
+| `timezoneFixedOffset(tz)` | Fixed offset of an `Etc/*` zone, `null` otherwise |
+| `windowsToTimezones(id, {countryCode})` | Every IANA zone CLDR groups under a Windows ID |
+| `windowsZonesVersion` | CLDR's version stamp for the Windows mapping |
+| `windowsZonesIanaVersion` | IANA release that mapping was aligned to |
 | `timezoneCoordinates(tz)` | Latitude and longitude of the zone's city |
 | `timezoneComment(tz)` | IANA's English description of the zone |
 | `nearestTimezone(lat, lon, {countryCode})` | Zone with the closest city |
@@ -237,7 +306,10 @@ throws `UnsupportedError`; copy first.
   Both zone tables are used: `zone1970.tab` supplies the multi-country lists, `zone.tab` supplies the country-specific zones that `zone1970.tab` merges away (`Europe/Oslo`, `Europe/Copenhagen`, and others).
   Column 2 of the zone tables supplies the coordinates, column 4 the English descriptions.
 - **ISO 3166-1** via [Debian iso-codes](https://salsa.debian.org/iso-codes-team/iso-codes) — alpha-2 ↔ alpha-3 ↔ numeric country code mappings and English country names
-- **CLDR** [`windowsZones.xml`](https://github.com/unicode-org/cldr/blob/main/common/supplemental/windowsZones.xml) — Windows ↔ IANA timezone identifiers. Released on its own schedule, independent of the IANA version.
+- **CLDR** [`windowsZones.xml`](https://github.com/unicode-org/cldr/blob/main/common/supplemental/windowsZones.xml) — Windows ↔ IANA timezone identifiers. Released on its own schedule, independent of the IANA version, and pinned to a release tag rather than the development branch. The mapping states the IANA release it was itself aligned to; read it from `windowsZonesIanaVersion`, and expect it to trail `ianaVersion` by years.
+- **CLDR** `metaZones.xml` and `common/main/en.xml` — English zone display names, exemplar cities, and the primary zone of a country.
+- **CLDR** `common/bcp47/timezone.xml` — which IANA zone each CLDR spelling stands for. `backward` may only link to a canonical zone, so it sends `Atlantic/Jan_Mayen` to `Europe/Berlin` and `Pacific/Yap` to `Pacific/Port_Moresby`; this table names the zone in the right country.
+- **IANA `etcetera`** — the `Etc/*` fixed-offset zones. These carry no country, so they are reachable through `isKnownTimezone` and `timezoneFixedOffset` but stay out of `allTimezones`.
 
 All data is embedded as compile-time `const` maps. No network requests, no file I/O, no runtime parsing.
 
@@ -245,7 +317,16 @@ All data is embedded as compile-time `const` maps. No network requests, no file 
 
 - `Etc/*` zones (`Etc/UTC`, `Etc/GMT`) have no country association in the
   IANA database. `isValidTimezone('Etc/UTC')` returns `false` and
-  `timezoneToCountryCode('Etc/UTC')` returns `null`.
+  `timezoneToCountryCode('Etc/UTC')` returns `null`. Use `isKnownTimezone` to
+  tell an unrecognised string apart from a real zone that simply has no
+  country — devices do report these. `timezoneFixedOffset` gives the offset
+  with its true sign, not the inverted one inside the identifier.
+- The display names are English only, and every one of them is nullable. A
+  zone with no current metazone has no generic, standard or daylight name; a
+  zone that never leaves standard time has no daylight name. Nothing is
+  synthesised to fill a gap, so a `null` means CLDR has no answer. Short
+  abbreviations are deliberately not exposed: CLDR supplies them for only a
+  handful of metazones in English, and they are ambiguous across regions.
 - `isValidCountryCode` means "has at least one IANA timezone", which is narrower
   than ISO 3166-1 membership. Use `isKnownCountryCode` for the latter.
 - `nearestTimezone` compares against the coordinates IANA gives each zone —
@@ -256,12 +337,22 @@ All data is embedded as compile-time `const` maps. No network requests, no file 
 - Some zones serve several countries because IANA merged them. Use
   `timezoneToCountryCodes` for the full list, and prefer the country-specific
   identifier (`Europe/Oslo` over `Europe/Berlin`) when you know the country.
+- `allTimezones` lists one identifier per zone, with deprecated aliases and the
+  `Etc/*` zones excluded. It matches the primary identifiers ECMA-402 defines,
+  including keeping two zones apart where they serve different countries
+  despite agreeing on the clock (`Europe/Oslo` and `Europe/Berlin`). Browsers
+  expose the same set through `Intl.supportedValuesOf('timeZone')`, but engines
+  are slow to follow IANA renames and still emit the superseded spelling, so
+  the two lists disagree on the names even where they agree on the zones.
 
 ## Non-goals
 
 This package maps identifiers. It does not do:
 
 - Time arithmetic, UTC offsets or DST — use [`timezone`](https://pub.dev/packages/timezone).
+  An embedded offset table would ship stale: offsets move with DST and on
+  political notice. The `Etc/*` zones are the exception, being fixed by
+  definition.
 - Localized country names — English only. Use [`common_locale_data`](https://pub.dev/packages/common_locale_data) or [`country_codes`](https://pub.dev/packages/country_codes).
 - Dial codes — use [`country_codes`](https://pub.dev/packages/country_codes).
 - Timezone boundary lookup from a coordinate — that needs shapefiles. `nearestTimezone` is a nearest-city approximation, not a substitute.
