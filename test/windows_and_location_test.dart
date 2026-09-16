@@ -48,6 +48,63 @@ void main() {
         TimezoneConvert.windowsToTimezone('Nowhere Standard Time'),
         isNull,
       );
+      expect(
+        TimezoneConvert.windowsToTimezones('Nowhere Standard Time'),
+        isNull,
+      );
+    });
+
+    test('keeps every zone CLDR groups under a territory', () {
+      final zones = TimezoneConvert.windowsToTimezones(
+        'Alaskan Standard Time',
+        countryCode: 'US',
+      )!;
+      expect(zones, contains('America/Anchorage'));
+      expect(zones, contains('America/Nome'));
+      expect(
+        zones.first,
+        TimezoneConvert.windowsToTimezone(
+          'Alaskan Standard Time',
+          countryCode: 'US',
+        ),
+      );
+    });
+
+    test('the list falls back and rejects on the same terms', () {
+      expect(
+        TimezoneConvert.windowsToTimezones(
+          'Tokyo Standard Time',
+          countryCode: 'NO',
+        ),
+        TimezoneConvert.windowsToTimezones('Tokyo Standard Time'),
+      );
+      expect(
+        TimezoneConvert.windowsToTimezones(
+          'Romance Standard Time',
+          countryCode: 'ZZ',
+        ),
+        isNull,
+      );
+      expect(
+        TimezoneConvert.windowsToTimezones(
+          'Romance Standard Time',
+          countryCode: 'BEL',
+        ),
+        ['Europe/Brussels'],
+      );
+    });
+
+    test('the preferred-zone map holds the head of each list', () {
+      for (final MapEntry(key: windowsId, value: byTerritory)
+          in TimezoneConvert.windowsToTimezonesMap.entries) {
+        for (final MapEntry(key: territory, value: zones)
+            in byTerritory.entries) {
+          expect(
+            TimezoneConvert.windowsToTimezoneMap[windowsId]![territory],
+            zones.first,
+          );
+        }
+      }
     });
 
     test('maps back from IANA', () {
@@ -101,15 +158,17 @@ void main() {
 
     test('never answers with a zone outside the country asked for', () {
       for (final MapEntry(value: byTerritory)
-          in TimezoneConvert.windowsToTimezoneMap.entries) {
-        for (final MapEntry(key: territory, value: timezone)
+          in TimezoneConvert.windowsToTimezonesMap.entries) {
+        for (final MapEntry(key: territory, value: timezones)
             in byTerritory.entries) {
           if (!TimezoneConvert.isValidCountryCode(territory)) continue;
-          expect(
-            TimezoneConvert.timezoneToCountryCodes(timezone),
-            contains(territory),
-            reason: '$territory is served by $timezone',
-          );
+          for (final timezone in timezones) {
+            expect(
+              TimezoneConvert.timezoneToCountryCodes(timezone),
+              contains(territory),
+              reason: '$territory is served by $timezone',
+            );
+          }
         }
       }
     });

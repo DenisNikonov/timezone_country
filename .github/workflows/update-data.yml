@@ -39,29 +39,47 @@ jobs:
           curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/zone1970.tab" -o /tmp/zone1970.tab
           curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/zone.tab" -o /tmp/zone.tab
           curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/backward" -o /tmp/backward
+          curl -sfL "https://raw.githubusercontent.com/eggert/tz/${LATEST}/etcetera" -o /tmp/etcetera
 
           curl -sfL "https://salsa.debian.org/iso-codes-team/iso-codes/-/raw/main/data/iso_3166-1.json" -o /tmp/iso_3166-1.json
 
           # CLDR releases on its own schedule, unrelated to the IANA version.
-          curl -sfL "https://raw.githubusercontent.com/unicode-org/cldr/main/common/supplemental/windowsZones.xml" -o /tmp/windowsZones.xml
+          # Tags API is not version-ordered and the tag list spans pages.
+          CLDR_TAGS=$(for page in 1 2 3 4 5 6 7 8; do
+            curl -sL -H "Authorization: Bearer ${{ github.token }}" \
+              "https://api.github.com/repos/unicode-org/cldr/tags?per_page=100&page=${page}" \
+              | grep '"name"' | cut -d'"' -f4
+          done)
+          CLDR_TAG=$(echo "$CLDR_TAGS" \
+            | grep -E '^release-[0-9]+(-[0-9]+)*$' | sort -V | tail -1)
+          if [ -z "$CLDR_TAG" ]; then
+            echo "::error::Failed to determine latest CLDR release tag"
+            exit 1
+          fi
+          echo "Latest CLDR release: $CLDR_TAG"
+          echo "CLDR_TAG=$CLDR_TAG" >> $GITHUB_ENV
 
-          # The file carries no version of its own, so record the commit it
-          # came from.
-          CLDR=$(curl -sL -H "Authorization: Bearer ${{ github.token }}" \
-            "https://api.github.com/repos/unicode-org/cldr/commits?path=common/supplemental/windowsZones.xml&per_page=1" \
-            | grep -m1 '"sha"' | cut -d'"' -f4 | cut -c1-7)
-          echo "CLDR_COMMIT=${CLDR:-unknown}" >> $GITHUB_ENV
+          curl -sfL "https://raw.githubusercontent.com/unicode-org/cldr/${CLDR_TAG}/common/supplemental/windowsZones.xml" -o /tmp/windowsZones.xml
+          curl -sfL "https://raw.githubusercontent.com/unicode-org/cldr/${CLDR_TAG}/common/supplemental/metaZones.xml" -o /tmp/metaZones.xml
+          curl -sfL "https://raw.githubusercontent.com/unicode-org/cldr/${CLDR_TAG}/common/main/en.xml" -o /tmp/en.xml
+          curl -sfL "https://raw.githubusercontent.com/unicode-org/cldr/${CLDR_TAG}/common/bcp47/timezone.xml" -o /tmp/bcp47_timezone.xml
 
-          for f in /tmp/zone1970.tab /tmp/zone.tab /tmp/backward /tmp/iso_3166-1.json /tmp/windowsZones.xml; do
+          for f in /tmp/zone1970.tab /tmp/zone.tab /tmp/backward /tmp/etcetera /tmp/iso_3166-1.json /tmp/windowsZones.xml /tmp/metaZones.xml /tmp/en.xml /tmp/bcp47_timezone.xml; do
             if [ ! -s "$f" ]; then
               echo "::error::Downloaded source file $f is empty"
               exit 1
             fi
           done
 
+          # The mapping states which IANA release it was aligned to, and it
+          # lags the one downloaded above.
+          CLDR_TYPE_VERSION=$(grep -o 'typeVersion="[^"]*"' /tmp/windowsZones.xml \
+            | head -1 | cut -d'"' -f2)
+          echo "CLDR_TYPE_VERSION=${CLDR_TYPE_VERSION:-unknown}" >> $GITHUB_ENV
+
       - name: Generate data files
         run: |
-          dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/zone.tab /tmp/backward /tmp/iso_3166-1.json /tmp/windowsZones.xml --version ${{ env.IANA_VERSION }}
+          dart run tool/generate_data.dart /tmp/zone1970.tab /tmp/zone.tab /tmp/backward /tmp/etcetera /tmp/iso_3166-1.json /tmp/windowsZones.xml /tmp/metaZones.xml /tmp/en.xml /tmp/bcp47_timezone.xml --version ${{ env.IANA_VERSION }}
           dart format lib/src/data/
 
       - name: Check for changes
@@ -111,7 +129,7 @@ jobs:
           TZ_COUNT=$(grep -c "^  '" lib/src/data/timezone_to_country_data.dart || true)
           CC_COUNT=$(grep -c "^  '" lib/src/data/country_to_timezones_data.dart || true)
 
-          ENTRY="## ${VERSION}\n\n- Updated embedded timezone and country data (${DATE}). IANA Time Zone Database ${IANA}, CLDR ${{ env.CLDR_COMMIT }}.\n- ${TZ_COUNT} timezones, ${CC_COUNT} countries.\n"
+          ENTRY="## ${VERSION}\n\n- Updated embedded timezone and country data (${DATE}). IANA Time Zone Database ${IANA}, CLDR ${{ env.CLDR_TAG }} (Windows zone mapping aligned to IANA ${{ env.CLDR_TYPE_VERSION }}).\n- ${TZ_COUNT} timezones, ${CC_COUNT} countries.\n"
 
           echo -e "${ENTRY}" | cat - CHANGELOG.md > CHANGELOG.tmp
           mv CHANGELOG.tmp CHANGELOG.md

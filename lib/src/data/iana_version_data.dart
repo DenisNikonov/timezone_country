@@ -5,3 +5,10 @@
 
 /// IANA Time Zone Database version used to generate data files.
 const String ianaVersion = '2026d';
+
+/// CLDR's own version stamp for the Windows timezone mapping.
+const String windowsZonesVersion = '7e11800';
+
+/// IANA Time Zone Database release the CLDR Windows timezone mapping
+/// was last aligned to.
+const String windowsZonesIanaVersion = '2021a';

@@ -1,9 +1,8 @@
 name: timezone_country
 description: >-
-  Convert IANA timezones to ISO 3166-1 country codes and back.
-  Country names, flag emoji, alpha-2/alpha-3, Windows timezone IDs.
-  Pure Dart, zero dependencies, O(1) const-map identifier lookups.
-version: 1.1.1
+  Convert IANA timezones to ISO 3166-1 country codes and back: country names,
+  flag emoji, alpha-2/alpha-3, Windows timezone IDs. Pure Dart, zero dependencies.
+version: 1.2.0
 repository: https://github.com/DenisNikonov/timezone_country
 issue_tracker: https://github.com/DenisNikonov/timezone_country/issues
 topics:

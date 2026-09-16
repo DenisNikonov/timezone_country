@@ -37,6 +37,28 @@ void main() {
       expect(TimezoneConvert.resolveTimezone('Asia/Rangoon'), 'Asia/Yangon');
     });
 
+    test('both spellings of the Ukrainian zone resolve to its country', () {
+      expect(TimezoneConvert.resolveTimezone('Europe/Kiev'), 'Europe/Kyiv');
+      expect(TimezoneConvert.resolveTimezone('Europe/Kyiv'), 'Europe/Kyiv');
+
+      expect(TimezoneConvert.timezoneToCountryCode('Europe/Kiev'), 'UA');
+      expect(TimezoneConvert.timezoneToCountryCode('Europe/Kyiv'), 'UA');
+      expect(TimezoneConvert.timezoneToCountryCodes('Europe/Kiev'), ['UA']);
+
+      expect(TimezoneConvert.isValidTimezone('Europe/Kiev'), isTrue);
+      expect(TimezoneConvert.isValidTimezone('Europe/Kyiv'), isTrue);
+    });
+
+    test('the Ukrainian zone is enumerated only under its new spelling', () {
+      expect(TimezoneConvert.countryToTimezones('UA'), contains('Europe/Kyiv'));
+      expect(
+        TimezoneConvert.countryToTimezones('UA'),
+        isNot(contains('Europe/Kiev')),
+      );
+      expect(TimezoneConvert.allTimezones, contains('Europe/Kyiv'));
+      expect(TimezoneConvert.allTimezones, isNot(contains('Europe/Kiev')));
+    });
+
     test('Canada legacy timezones resolve correctly', () {
       expect(
         TimezoneConvert.resolveTimezone('Canada/Eastern'),

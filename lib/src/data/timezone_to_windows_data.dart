@@ -76,6 +76,7 @@ const Map<String, String> timezoneToWindows = {
   'America/Argentina/Ushuaia': 'Argentina Standard Time',
   'America/Aruba': 'SA Western Standard Time',
   'America/Asuncion': 'Paraguay Standard Time',
+  'America/Atikokan': 'SA Pacific Standard Time',
   'America/Bahia': 'Bahia Standard Time',
   'America/Bahia_Banderas': 'Central Standard Time (Mexico)',
   'America/Barbados': 'SA Western Standard Time',
