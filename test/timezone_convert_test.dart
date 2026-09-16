@@ -120,5 +120,22 @@ void main() {
     test('ianaVersion is a released IANA version', () {
       expect(TimezoneConvert.ianaVersion, matches(RegExp(r'^\d{4}[a-z]+$')));
     });
+
+    test('windowsZonesVersion is recorded', () {
+      expect(TimezoneConvert.windowsZonesVersion, isNotEmpty);
+    });
+
+    test('windowsZonesIanaVersion names an IANA release, not the latest', () {
+      expect(
+        TimezoneConvert.windowsZonesIanaVersion,
+        matches(RegExp(r'^\d{4}[a-z]+$')),
+      );
+      expect(
+        TimezoneConvert.windowsZonesIanaVersion!.compareTo(
+          TimezoneConvert.ianaVersion!,
+        ),
+        lessThanOrEqualTo(0),
+      );
+    });
   });
 }

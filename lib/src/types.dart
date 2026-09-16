@@ -15,7 +15,10 @@ import 'timezone_convert.dart';
 /// This is a [String] at runtime, so it costs nothing and prints as the
 /// code itself, but it is a distinct static type: pass [alpha2] where a
 /// [String] is expected.
-extension type const CountryCode._(String alpha2) {
+extension type const CountryCode._(
+  /// The ISO 3166-1 alpha-2 code, upper case.
+  String alpha2
+) {
   /// Returns a [CountryCode] for [code], which may be alpha-2 or alpha-3 in
   /// either letter case, or `null` if it is not in ISO 3166-1.
   static CountryCode? tryParse(String code) {
@@ -44,6 +47,13 @@ extension type const CountryCode._(String alpha2) {
     for (final id in TimezoneConvert.countryToTimezones(alpha2) ?? const [])
       TimezoneId._(id),
   ]);
+
+  /// The one timezone that stands for this country, or `null` on the terms
+  /// [TimezoneConvert.primaryTimezone] describes.
+  TimezoneId? get primaryTimezone {
+    final id = TimezoneConvert.primaryTimezone(alpha2);
+    return id == null ? null : TimezoneId._(id);
+  }
 }
 
 /// An IANA timezone identifier that is known to be valid and canonical.
@@ -60,7 +70,10 @@ extension type const CountryCode._(String alpha2) {
 /// This is a [String] at runtime, so it costs nothing and prints as the
 /// identifier itself, but it is a distinct static type: pass [id] where a
 /// [String] is expected.
-extension type const TimezoneId._(String id) {
+extension type const TimezoneId._(
+  /// The canonical IANA identifier, never a deprecated alias.
+  String id
+) {
   /// Returns a [TimezoneId] for [timezone], or `null` if it is not a known
   /// identifier with a country association.
   static TimezoneId? tryParse(String timezone) {
@@ -93,4 +106,23 @@ extension type const TimezoneId._(String id) {
 
   /// The Windows timezone identifier, or `null` if CLDR has no equivalent.
   String? get windowsId => TimezoneConvert.timezoneToWindows(id);
+
+  /// The English exemplar city, which every zone with a country has.
+  String get city => TimezoneConvert.timezoneCity(id)!;
+
+  /// The CLDR metazone, or `null` on the terms
+  /// [TimezoneConvert.metazone] describes.
+  String? get metazone => TimezoneConvert.metazone(id);
+
+  /// The English name this zone goes by whatever the date, or `null` on the
+  /// terms [TimezoneConvert.timezoneGenericName] describes.
+  String? get genericName => TimezoneConvert.timezoneGenericName(id);
+
+  /// The English name for this zone's standard time, or `null` on the terms
+  /// [TimezoneConvert.timezoneStandardName] describes.
+  String? get standardName => TimezoneConvert.timezoneStandardName(id);
+
+  /// The English name for this zone's daylight saving time, or `null` on the
+  /// terms [TimezoneConvert.timezoneDaylightName] describes.
+  String? get daylightName => TimezoneConvert.timezoneDaylightName(id);
 }
