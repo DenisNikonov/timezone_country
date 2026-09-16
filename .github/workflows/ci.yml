@@ -67,3 +67,68 @@ jobs:
       - name: Publish dry run
         if: matrix.sdk == 'stable'
         run: dart pub publish --dry-run
+
+  platforms:
+    name: ${{ matrix.os }} / ${{ matrix.target.platform }}-${{ matrix.target.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        target:
+          - {platform: vm, compiler: kernel}
+          - {platform: chrome, compiler: dart2js}
+          - {platform: chrome, compiler: dart2wasm}
+          - {platform: node, compiler: dart2js}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1.8.1
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Run tests
+        run: dart test -p ${{ matrix.target.platform }} -c ${{ matrix.target.compiler }}
+
+  aot:
+    name: AOT / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1.8.1
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Compile and run AOT smoke test
+        shell: bash
+        run: |
+          dart compile exe test/aot_smoke.dart -o aot_smoke.exe
+          ./aot_smoke.exe | grep -q '^aot smoke ok:'
+
+  size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1.8.1
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Measure size impact
+        run: |
+          {
+            echo '```'
+            dart run tool/measure_size.dart
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
