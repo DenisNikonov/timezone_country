@@ -1,6 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generated from IANA Time Zone Database, ISO 3166-1 and CLDR
-// IANA version: 2026d
+// IANA version: 2026e
 // Generator: tool/generate_data.dart
 
 /// Mapping from IANA timezone identifier to the English description in the zone tables.
@@ -109,7 +109,7 @@ const Map<String, String> timezoneComments = {
   'America/Toronto': 'Eastern - ON & QC (most areas)',
   'America/Vancouver': 'MST - BC (most areas)',
   'America/Whitehorse': 'MST - Yukon (east)',
-  'America/Winnipeg': 'Central - ON (west), Manitoba',
+  'America/Winnipeg': 'EST - Manitoba, ON (northwest)',
   'America/Yakutat': 'Alaska - Yakutat',
   'Antarctica/Casey': 'Casey',
   'Antarctica/Davis': 'Davis',

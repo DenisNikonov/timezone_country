@@ -1,6 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generated from IANA Time Zone Database, ISO 3166-1 and CLDR
-// IANA version: 2026d
+// IANA version: 2026e
 // Generator: tool/generate_data.dart
 
 /// Mapping from IANA timezone identifier to the English daylight-time name CLDR gives the zone itself, overriding its metazone.
