@@ -1,6 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generated from IANA Time Zone Database, ISO 3166-1 and CLDR
-// IANA version: 2026d
+// IANA version: 2026e
 // Generator: tool/generate_data.dart
 
 /// Mapping from Windows timezone identifier to territory to the IANA timezone identifiers CLDR groups under it, preferred one first. Territory '001' is the worldwide default.
