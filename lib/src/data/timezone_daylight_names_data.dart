@@ -4,7 +4,4 @@
 // Generator: tool/generate_data.dart
 
 /// Mapping from IANA timezone identifier to the English daylight-time name CLDR gives the zone itself, overriding its metazone.
-const Map<String, String> timezoneDaylightNames = {
-  'Europe/Dublin': 'Irish Standard Time',
-  'Europe/London': 'British Summer Time',
-};
+const Map<String, String> timezoneDaylightNames = {};
