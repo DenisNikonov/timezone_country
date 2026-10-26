@@ -28,6 +28,10 @@ const Map<String, Map<String, List<String>>> windowsToTimezones = {
       'America/Yakutat',
     ],
   },
+  'Alberta Standard Time': {
+    '001': ['America/Edmonton'],
+    'CA': ['America/Edmonton', 'America/Inuvik'],
+  },
   'Aleutian Standard Time': {
     '001': ['America/Adak'],
     'US': ['America/Adak'],
@@ -116,6 +120,10 @@ const Map<String, Map<String, List<String>>> windowsToTimezones = {
     '001': ['Pacific/Bougainville'],
     'PG': ['Pacific/Bougainville'],
   },
+  'British Columbia Standard Time': {
+    '001': ['America/Vancouver'],
+    'CA': ['America/Vancouver'],
+  },
   'Canada Central Standard Time': {
     '001': ['America/Regina'],
     'CA': ['America/Regina', 'America/Swift_Current'],
@@ -184,7 +192,7 @@ const Map<String, Map<String, List<String>>> windowsToTimezones = {
   },
   'Central Standard Time': {
     '001': ['America/Chicago'],
-    'CA': ['America/Winnipeg', 'America/Rankin_Inlet', 'America/Resolute'],
+    'CA': ['America/Rankin_Inlet', 'America/Resolute'],
     'MX': ['America/Matamoros', 'America/Ojinaga'],
     'US': [
       'America/Chicago',
@@ -394,6 +402,10 @@ const Map<String, Map<String, List<String>>> windowsToTimezones = {
     '001': ['America/Punta_Arenas'],
     'CL': ['America/Punta_Arenas', 'America/Coyhaique'],
   },
+  'Manitoba Standard Time': {
+    '001': ['America/Winnipeg'],
+    'CA': ['America/Winnipeg'],
+  },
   'Marquesas Standard Time': {
     '001': ['Pacific/Marquesas'],
     'PF': ['Pacific/Marquesas'],
@@ -419,7 +431,7 @@ const Map<String, Map<String, List<String>>> windowsToTimezones = {
   },
   'Mountain Standard Time': {
     '001': ['America/Denver'],
-    'CA': ['America/Edmonton', 'America/Cambridge_Bay', 'America/Inuvik'],
+    'CA': ['America/Cambridge_Bay'],
     'MX': ['America/Ciudad_Juarez'],
     'US': ['America/Denver', 'America/Boise'],
   },
@@ -479,7 +491,6 @@ const Map<String, Map<String, List<String>>> windowsToTimezones = {
   },
   'Pacific Standard Time': {
     '001': ['America/Los_Angeles'],
-    'CA': ['America/Vancouver'],
     'US': ['America/Los_Angeles'],
   },
   'Pacific Standard Time (Mexico)': {
