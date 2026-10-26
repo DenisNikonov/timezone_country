@@ -134,7 +134,7 @@ void main() {
     });
 
     test('returns null for a zone CLDR has taken out of every metazone', () {
-      expect(TimezoneConvert.metazone('Africa/Casablanca'), isNull);
+      expect(TimezoneConvert.metazone('Asia/Amman'), isNull);
     });
 
     test('returns null for an unknown identifier', () {
@@ -188,14 +188,14 @@ void main() {
     );
 
     test('returns null where the metazone has no name of that kind', () {
-      expect(TimezoneConvert.timezoneGenericName('Europe/London'), isNull);
+      expect(TimezoneConvert.timezoneGenericName('Asia/Bangkok'), isNull);
       expect(TimezoneConvert.timezoneDaylightName('Asia/Calcutta'), isNull);
     });
 
     test('returns null for a zone with no metazone', () {
-      expect(TimezoneConvert.timezoneGenericName('Africa/Casablanca'), isNull);
-      expect(TimezoneConvert.timezoneStandardName('Africa/Casablanca'), isNull);
-      expect(TimezoneConvert.timezoneDaylightName('Africa/Casablanca'), isNull);
+      expect(TimezoneConvert.timezoneGenericName('Asia/Amman'), isNull);
+      expect(TimezoneConvert.timezoneStandardName('Asia/Amman'), isNull);
+      expect(TimezoneConvert.timezoneDaylightName('Asia/Amman'), isNull);
     });
 
     test('returns null for an unknown identifier', () {
@@ -250,9 +250,7 @@ void main() {
         'British Summer Time',
       );
       expect(
-        TimezoneConvert.timezoneGenericNamesMap.containsKey(
-          'Africa/Casablanca',
-        ),
+        TimezoneConvert.timezoneGenericNamesMap.containsKey('Asia/Amman'),
         isFalse,
       );
     });
@@ -341,12 +339,12 @@ void main() {
     });
 
     test('leaves the names null where CLDR has none', () {
-      final casablanca = TimezoneId.tryParse('Africa/Casablanca')!;
-      expect(casablanca.city, 'Casablanca');
-      expect(casablanca.metazone, isNull);
-      expect(casablanca.genericName, isNull);
-      expect(casablanca.standardName, isNull);
-      expect(casablanca.daylightName, isNull);
+      final amman = TimezoneId.tryParse('Asia/Amman')!;
+      expect(amman.city, 'Amman');
+      expect(amman.metazone, isNull);
+      expect(amman.genericName, isNull);
+      expect(amman.standardName, isNull);
+      expect(amman.daylightName, isNull);
     });
   });
 
