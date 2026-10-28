@@ -1,6 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
 // Generated from IANA Time Zone Database, ISO 3166-1 and CLDR
-// IANA version: 2026e
+// IANA version: 2026f
 // Generator: tool/generate_data.dart
 
 /// Mapping from fixed-offset IANA timezone identifier to its offset from UTC in seconds, positive east. The sign in the identifier is POSIX-style and points the other way.
