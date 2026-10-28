@@ -1,3 +1,8 @@
+## 1.2.3
+
+- Updated embedded timezone and country data (2026-10-28). IANA Time Zone Database 2026f, CLDR release-49 (Windows zone mapping aligned to IANA 2021a).
+- 418 timezones, 247 countries.
+
 ## 1.2.2
 
 - Updated embedded timezone and country data (2026-10-26). IANA Time Zone Database 2026e, CLDR release-49 (Windows zone mapping aligned to IANA 2021a).
